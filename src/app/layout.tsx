@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import Providers from '@/components/Providers';
 import Cart from '@/components/Cart';
+import Checkout from '@/components/Checkout';
 
 export const metadata: Metadata = {
   title: 'Pfeifn – Dein Pfiff. Deine Pfeifn.',
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           {children}
           <Cart />
+          <Checkout />
         </Providers>
       </body>
     </html>

@@ -4,23 +4,8 @@ import { X, Plus, Minus, ShoppingCart, Trash2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 
 export default function Cart() {
-  const { items, isOpen, close, remove, setQty, count } = useCart();
+  const { items, isOpen, close, remove, setQty, count, openCheckout } = useCart();
   const total = items.reduce((s, i) => s + i.price * i.qty, 0);
-
-  const handleOrder = () => {
-    const lines = items.map(i =>
-      `${i.qty}× ${i.modelName} (${i.colorName}, ${i.design}, ${i.toneName}) – CHF ${(i.price * i.qty).toFixed(2)}`
-    ).join('\n');
-    sessionStorage.setItem('pfeifn_order', JSON.stringify({
-      model:  items.map(i => i.modelName).join(', '),
-      color:  items.map(i => i.colorName).join(', '),
-      design: items.map(i => i.design).join(', '),
-      tone:   items.map(i => i.toneName).join(', '),
-      details: lines,
-    }));
-    close();
-    window.location.hash = 'kontakt';
-  };
 
   return (
     <AnimatePresence>
@@ -133,7 +118,7 @@ export default function Cart() {
                   <span className="text-white font-black text-xl">CHF {total.toFixed(2)}</span>
                 </div>
                 <button
-                  onClick={handleOrder}
+                  onClick={openCheckout}
                   className="w-full py-4 bg-brand hover:bg-brand-dark text-white font-bold rounded-full transition-all duration-200 hover:scale-[1.02] shadow-lg shadow-brand/30 text-sm"
                 >
                   Zur Bestellung →
