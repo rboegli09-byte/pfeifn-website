@@ -1,15 +1,12 @@
 import { Instagram, Youtube, Twitter } from 'lucide-react';
+import Logo from '@/components/Logo';
 
 export default function Footer() {
   return (
     <footer className="bg-zinc-950 border-t border-zinc-800 py-12">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          <img
-            src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/logo.svg`}
-            alt="Pfeifn Logo"
-            className="h-12 w-auto brightness-0 invert"
-          />
+          <Logo className="h-12 w-auto" />
 
           <div className="flex items-center gap-6 text-sm text-zinc-500">
             <a href="#" className="hover:text-white transition-colors">Impressum</a>

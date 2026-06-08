@@ -5,6 +5,7 @@ import { Canvas } from '@react-three/fiber';
 import { Environment, Float, Stars, Lightformer } from '@react-three/drei';
 import WhistleModel from '@/components/three/WhistleModel';
 import { ChevronDown } from 'lucide-react';
+import Logo from '@/components/Logo';
 
 export default function Hero() {
   return (
@@ -62,11 +63,7 @@ export default function Hero() {
           <p className="text-brand text-xs sm:text-sm uppercase tracking-[0.3em] font-semibold mb-4">
             Premium Pfeifen
           </p>
-          <img
-            src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/logo.svg`}
-            alt="Pfeifn Logo"
-            className="h-36 sm:h-52 lg:h-64 w-auto brightness-0 invert mb-4 mx-auto"
-          />
+          <Logo className="h-36 sm:h-52 lg:h-64 w-auto mb-4 mx-auto" />
           <p className="text-xl sm:text-2xl text-zinc-300 font-light mt-4 mb-8">
             Dein Pfiff. Deine Pfeifn.
           </p>
