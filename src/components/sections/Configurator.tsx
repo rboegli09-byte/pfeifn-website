@@ -1,7 +1,7 @@
 'use client';
 import { useState, useCallback, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment, ContactShadows } from '@react-three/drei';
+import { OrbitControls, Environment, ContactShadows, Lightformer } from '@react-three/drei';
 import { motion } from 'framer-motion';
 import { Play, Square, Check } from 'lucide-react';
 import WhistleModel from '@/components/three/WhistleModel';
@@ -26,13 +26,11 @@ export default function Configurator() {
   const handleOrder = () => {
     const colorName = whistleColors.find((c) => c.hex === color)?.name ?? color;
     const toneName  = selectedTone ? whistleTones.find((t) => t.id === selectedTone)?.name : null;
-    const summary = {
+    sessionStorage.setItem('pfeifn_order', JSON.stringify({
       model:  whistleTypes.find((w) => w.id === whistleType)?.name ?? whistleType,
-      color:  colorName,
-      design,
+      color:  colorName, design,
       tone:   toneName ?? 'kein Ton gewählt',
-    };
-    sessionStorage.setItem('pfeifn_order', JSON.stringify(summary));
+    }));
     window.location.hash = 'kontakt';
   };
 
@@ -48,21 +46,29 @@ export default function Configurator() {
           <p className="text-brand text-xs uppercase tracking-widest font-semibold mb-3">3D-Konfigurator</p>
           <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-white">Gestalte deine Pfeifn</h2>
           <p className="text-zinc-400 mt-4 max-w-xl mx-auto">
-            Wähle Modell, Farbe, Design und Ton – dann direkt bestellen.
+            Modell, Farbe, Design und Ton – dann direkt bestellen.
           </p>
         </motion.div>
 
         <div className="grid md:grid-cols-2 gap-8 items-center">
           {/* 3D Canvas */}
-          <div className="relative h-[420px] sm:h-[520px] rounded-2xl overflow-hidden bg-zinc-900/40 border border-zinc-800">
-            <Canvas camera={{ position: [0, 0.4, 4.5], fov: 42 }} gl={{ antialias: true }}>
-              <ambientLight intensity={0.5} />
-              <pointLight position={[6, 6, 6]} intensity={2.5} />
-              <pointLight position={[-6, -4, -4]} intensity={0.8} color="#6688ff" />
+          <div className="relative h-[440px] sm:h-[540px] rounded-2xl overflow-hidden bg-zinc-900/50 border border-zinc-800">
+            <Canvas shadows camera={{ position: [0, 0.3, 4.6], fov: 42 }} gl={{ antialias: true }}>
+              <ambientLight intensity={0.35} />
+              <directionalLight
+                castShadow
+                position={[4, 7, 4]}
+                intensity={2.2}
+                shadow-mapSize={[1024, 1024]}
+              />
+              <pointLight position={[-5, -3, -3]} intensity={0.8} color="#6688ff" />
               <Suspense fallback={null}>
-                <Environment preset="studio" />
+                <Environment resolution={256} frames={Infinity}>
+                  <Lightformer intensity={4}   position={[4, 4, 4]}   color="white"   form="ring" scale={3} />
+                  <Lightformer intensity={1.2} position={[-4, -2, -2]} color="#88aaff" form="rect"  scale={2} />
+                </Environment>
                 <WhistleModel color={color} design={design} whistleType={whistleType} />
-                <ContactShadows position={[0, -1.4, 0]} opacity={0.4} blur={2} far={4} />
+                <ContactShadows position={[0, -1.5, 0]} opacity={0.45} blur={2.5} far={4} />
               </Suspense>
               <OrbitControls enablePan={false} minDistance={2.5} maxDistance={7} autoRotate autoRotateSpeed={0.7} />
             </Canvas>
@@ -73,7 +79,7 @@ export default function Configurator() {
 
           {/* Controls */}
           <div className="space-y-6">
-            {/* Whistle Type */}
+            {/* Model */}
             <div>
               <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-widest mb-3">Modell</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -136,52 +142,40 @@ export default function Configurator() {
               </div>
             </div>
 
-            {/* Tones — click row to select for order, play button to preview */}
+            {/* Tones */}
             <div>
               <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-widest mb-1">Ton wählen</h3>
-              <p className="text-xs text-zinc-600 mb-3">Zeile antippen zum Auswählen · ▶ zum Vorhören</p>
+              <p className="text-xs text-zinc-600 mb-3">Zeile = auswählen · ▶ = vorhören</p>
               <div className="space-y-2">
                 {whistleTones.map((t) => {
-                  const isSelected = selectedTone === t.id;
-                  const isPlaying  = playing === t.id;
+                  const isSel  = selectedTone === t.id;
+                  const isPlay = playing === t.id;
                   return (
                     <div
                       key={t.id}
-                      onClick={() => setSelectedTone(isSelected ? null : t.id)}
+                      onClick={() => setSelectedTone(isSel ? null : t.id)}
                       className={`flex items-center justify-between rounded-xl px-4 py-3 cursor-pointer border transition-all duration-200 ${
-                        isSelected
-                          ? 'border-brand bg-brand/15'
-                          : 'border-zinc-800 bg-zinc-900/60 hover:border-zinc-600'
+                        isSel ? 'border-brand bg-brand/15' : 'border-zinc-800 bg-zinc-900/60 hover:border-zinc-600'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        {/* Selected checkmark */}
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-                          isSelected ? 'border-brand bg-brand' : 'border-zinc-600'
+                          isSel ? 'border-brand bg-brand' : 'border-zinc-600'
                         }`}>
-                          {isSelected && <Check size={11} className="text-white" />}
+                          {isSel && <Check size={11} className="text-white" />}
                         </div>
                         <div>
-                          <p className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-zinc-200'}`}>
-                            {t.name}
-                          </p>
+                          <p className={`text-sm font-medium ${isSel ? 'text-white' : 'text-zinc-200'}`}>{t.name}</p>
                           <p className="text-xs text-zinc-500">{t.desc}</p>
                         </div>
                       </div>
-
-                      {/* Play button */}
                       <button
                         onClick={(e) => handlePlay(t.id, e)}
                         className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 shrink-0 ${
-                          isPlaying
-                            ? 'bg-brand text-white scale-95 animate-pulse'
-                            : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
+                          isPlay ? 'bg-brand text-white scale-95 animate-pulse' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
                         }`}
-                        aria-label={isPlaying ? 'Stop' : 'Vorhören'}
                       >
-                        {isPlaying
-                          ? <Square size={11} />
-                          : <Play  size={11} className="ml-0.5" />}
+                        {isPlay ? <Square size={11} /> : <Play size={11} className="ml-0.5" />}
                       </button>
                     </div>
                   );
@@ -189,7 +183,6 @@ export default function Configurator() {
               </div>
             </div>
 
-            {/* Order summary + CTA */}
             {selectedTone && (
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
@@ -198,17 +191,10 @@ export default function Configurator() {
               >
                 <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Deine Auswahl</p>
                 <p>
-                  <span className="text-white font-medium">
-                    {whistleTypes.find((w) => w.id === whistleType)?.name}
-                  </span>
-                  {' · '}
-                  {whistleColors.find((c) => c.hex === color)?.name}
-                  {' · '}
-                  {design}
-                  {' · '}
-                  <span className="text-brand font-medium">
-                    {whistleTones.find((t) => t.id === selectedTone)?.name}
-                  </span>
+                  <span className="text-white font-medium">{whistleTypes.find((w) => w.id === whistleType)?.name}</span>
+                  {' · '}{whistleColors.find((c) => c.hex === color)?.name}
+                  {' · '}{design}
+                  {' · '}<span className="text-brand font-medium">{whistleTones.find((t) => t.id === selectedTone)?.name}</span>
                 </p>
               </motion.div>
             )}

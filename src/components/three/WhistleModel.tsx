@@ -2,302 +2,286 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { designMaterials, WhistleTypeId } from '@/lib/data';
-
-interface MatProps {
-  color: string;
-  roughness: number;
-  metalness: number;
-  envMapIntensity?: number;
-}
+import { designMaterials, WhistleTypeId, DesignMaterial } from '@/lib/data';
 
 interface Props {
   color: string;
   design: string;
   whistleType?: WhistleTypeId;
-  hover?: boolean;
 }
 
-const silver: MatProps = { color: '#b0b0b0', roughness: 0.1, metalness: 0.95 };
-const dark:   MatProps = { color: '#080808', roughness: 1.0, metalness: 0.0  };
+type M = DesignMaterial & { color: string; envMapIntensity: number };
 
-/* ── 1. PEA CLASSIC ─────────────────────────────────────────────── */
-function PeaWhistle({ m }: { m: MatProps }) {
+const SILVER: M = { color: '#c0c0c0', roughness: 0.06, metalness: 0.98, clearcoat: 0, clearcoatRoughness: 0, envMapIntensity: 2 };
+const DARK:   M = { color: '#040404', roughness: 1,    metalness: 0,    clearcoat: 0, clearcoatRoughness: 0, envMapIntensity: 0 };
+
+function Mat({ m }: { m: M }) {
+  return (
+    <meshPhysicalMaterial
+      color={m.color}
+      roughness={m.roughness}
+      metalness={m.metalness}
+      clearcoat={m.clearcoat}
+      clearcoatRoughness={m.clearcoatRoughness}
+      envMapIntensity={m.envMapIntensity}
+    />
+  );
+}
+
+/* ── 1. PEA CLASSIC ── closest to the photo ── */
+function PeaWhistle({ m }: { m: M }) {
   return (
     <group>
       {/* Oval body */}
-      <mesh castShadow scale={[1.45, 1.0, 0.82]}>
-        <sphereGeometry args={[0.38, 64, 64]} />
-        <meshStandardMaterial {...m} envMapIntensity={1.8} />
+      <mesh castShadow receiveShadow scale={[1.52, 1.0, 0.82]}>
+        <sphereGeometry args={[0.4, 128, 64]} />
+        <Mat m={m} />
+      </mesh>
+
+      {/* Seam line */}
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.4, 0.005, 6, 128]} />
+        <meshPhysicalMaterial color={m.color} roughness={1} metalness={0} clearcoat={0} clearcoatRoughness={0} />
       </mesh>
 
       {/* Mouthpiece box */}
-      <mesh castShadow position={[-0.74, 0.04, 0]}>
-        <boxGeometry args={[0.46, 0.22, 0.28]} />
-        <meshStandardMaterial {...m} envMapIntensity={1.8} />
+      <mesh castShadow receiveShadow position={[-0.74, 0.04, 0]}>
+        <boxGeometry args={[0.48, 0.2, 0.28]} />
+        <Mat m={m} />
+      </mesh>
+      {/* Mouthpiece top rounding */}
+      <mesh castShadow position={[-0.74, 0.14, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.065, 0.065, 0.28, 32]} />
+        <Mat m={m} />
+      </mesh>
+      {/* Slit opening */}
+      <mesh position={[-0.74, 0.13, 0.149]}>
+        <boxGeometry args={[0.38, 0.048, 0.015]} />
+        <Mat m={DARK} />
       </mesh>
 
-      {/* Mouthpiece slit opening */}
-      <mesh position={[-0.74, 0.13, 0.15]}>
-        <boxGeometry args={[0.38, 0.055, 0.02]} />
-        <meshStandardMaterial {...dark} />
+      {/* Logo emboss circle */}
+      <mesh position={[0.22, 0, 0.395]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.19, 0.19, 0.016, 64]} />
+        <meshPhysicalMaterial
+          color={m.color}
+          roughness={Math.min(m.roughness + 0.12, 1)}
+          metalness={m.metalness * 0.5}
+          clearcoat={m.clearcoat * 0.5}
+          clearcoatRoughness={m.clearcoatRoughness}
+          envMapIntensity={m.envMapIntensity * 0.6}
+        />
       </mesh>
-
-      {/* Logo emboss circle on front face */}
-      <mesh position={[0.18, 0, 0.37]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.19, 0.19, 0.025, 48]} />
-        <meshStandardMaterial color={m.color} roughness={Math.min(m.roughness + 0.15, 1)} metalness={m.metalness * 0.6} />
+      {/* Logo ring */}
+      <mesh position={[0.22, 0, 0.41]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.13, 0.011, 8, 64]} />
+        <meshPhysicalMaterial color="#1a1a1a" roughness={0.6} metalness={0.2} clearcoat={0} clearcoatRoughness={0} />
       </mesh>
-      {/* Inner ring on logo */}
-      <mesh position={[0.18, 0, 0.39]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.14, 0.012, 8, 48]} />
-        <meshStandardMaterial {...dark} />
+      {/* Logo P dot */}
+      <mesh position={[0.22, 0, 0.412]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.055, 0.055, 0.008, 32]} />
+        <meshPhysicalMaterial color="#1a1a1a" roughness={0.5} metalness={0.1} clearcoat={0} clearcoatRoughness={0} />
       </mesh>
 
       {/* Keyring loop on mouthpiece */}
-      <mesh position={[-0.98, 0.18, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <torusGeometry args={[0.07, 0.018, 8, 32]} />
-        <meshStandardMaterial {...m} envMapIntensity={1.8} />
+      <mesh position={[-0.97, 0.16, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.052, 0.02, 10, 32]} />
+        <Mat m={m} />
+      </mesh>
+      {/* Split ring (double torus = realistic keyring) */}
+      <mesh position={[-0.97, 0.36, 0]} rotation={[Math.PI / 2, 0.05, 0]}>
+        <torusGeometry args={[0.115, 0.021, 12, 64]} />
+        <Mat m={SILVER} />
+      </mesh>
+      <mesh position={[-0.97, 0.332, 0]} rotation={[Math.PI / 2, -0.05, 0]}>
+        <torusGeometry args={[0.09, 0.018, 12, 64]} />
+        <Mat m={SILVER} />
       </mesh>
 
-      {/* Split keyring */}
-      <mesh position={[-0.98, 0.36, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.11, 0.022, 8, 40]} />
-        <meshStandardMaterial {...silver} />
-      </mesh>
-
-      {/* Pea (partially visible through gap) */}
-      <mesh position={[0.1, -0.02, 0]}>
-        <sphereGeometry args={[0.1, 24, 24]} />
-        <meshStandardMaterial color="#cc7700" roughness={0.85} metalness={0.05} />
+      {/* Pea */}
+      <mesh position={[0.1, -0.01, 0]}>
+        <sphereGeometry args={[0.09, 32, 32]} />
+        <meshPhysicalMaterial color="#cc7700" roughness={0.78} metalness={0.05} clearcoat={0.1} clearcoatRoughness={0.5} />
       </mesh>
     </group>
   );
 }
 
-/* ── 2. FOX 40 ───────────────────────────────────────────────────── */
-function Fox40Whistle({ m }: { m: MatProps }) {
+/* ── 2. FOX 40 ── */
+function Fox40Whistle({ m }: { m: M }) {
   return (
     <group>
-      {/* Wide flat main body */}
-      <mesh castShadow scale={[1.6, 0.55, 1.0]}>
-        <boxGeometry args={[0.9, 0.7, 0.55]} />
-        <meshStandardMaterial {...m} envMapIntensity={1.8} />
+      <mesh castShadow receiveShadow scale={[1.55, 0.52, 1.0]}>
+        <boxGeometry args={[0.92, 0.72, 0.56]} />
+        <Mat m={m} />
       </mesh>
-
-      {/* Three chamber bumps on top */}
       {([-0.32, 0, 0.32] as number[]).map((x, i) => (
-        <mesh key={i} castShadow position={[x, 0.25, 0]} scale={[0.85, 0.45, 0.85]}>
-          <sphereGeometry args={[0.22, 32, 32]} />
-          <meshStandardMaterial {...m} envMapIntensity={1.8} />
+        <mesh key={i} castShadow position={[x, 0.26, 0]} scale={[0.85, 0.44, 0.85]}>
+          <sphereGeometry args={[0.23, 32, 32]} />
+          <Mat m={m} />
         </mesh>
       ))}
-
-      {/* Slots between chambers */}
       {([-0.16, 0.16] as number[]).map((x, i) => (
         <mesh key={i} position={[x, 0.18, 0]}>
-          <boxGeometry args={[0.07, 0.28, 0.58]} />
-          <meshStandardMaterial {...dark} />
+          <boxGeometry args={[0.07, 0.28, 0.59]} />
+          <Mat m={DARK} />
         </mesh>
       ))}
-
-      {/* Wide mouthpiece */}
-      <mesh castShadow position={[-0.9, 0.04, 0]}>
-        <boxGeometry args={[0.38, 0.3, 0.42]} />
-        <meshStandardMaterial {...m} envMapIntensity={1.8} />
+      <mesh castShadow position={[-0.91, 0.04, 0]}>
+        <boxGeometry args={[0.36, 0.3, 0.43]} />
+        <Mat m={m} />
       </mesh>
-
-      {/* Mouthpiece slot */}
-      <mesh position={[-0.9, 0.13, 0.22]}>
-        <boxGeometry args={[0.32, 0.06, 0.02]} />
-        <meshStandardMaterial {...dark} />
+      <mesh position={[-0.91, 0.13, 0.224]}>
+        <boxGeometry args={[0.3, 0.055, 0.015]} />
+        <Mat m={DARK} />
       </mesh>
-
-      {/* Lanyard hole */}
-      <mesh position={[0.83, 0.04, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.07, 0.025, 8, 32]} />
-        <meshStandardMaterial {...m} envMapIntensity={1.8} />
+      <mesh position={[0.84, 0.04, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.068, 0.024, 10, 32]} />
+        <Mat m={m} />
       </mesh>
-      <mesh position={[0.83, 0.22, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.11, 0.02, 8, 40]} />
-        <meshStandardMaterial {...silver} />
+      <mesh position={[0.84, 0.25, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.112, 0.021, 12, 64]} />
+        <Mat m={SILVER} />
       </mesh>
-
-      {/* Finger ridges on bottom */}
       {([-0.2, 0, 0.2] as number[]).map((x, i) => (
         <mesh key={i} position={[x, -0.28, 0]}>
-          <boxGeometry args={[0.06, 0.06, 0.58]} />
-          <meshStandardMaterial color={m.color} roughness={Math.min(m.roughness + 0.2, 1)} metalness={m.metalness * 0.5} />
+          <boxGeometry args={[0.06, 0.07, 0.58]} />
+          <meshPhysicalMaterial color={m.color} roughness={Math.min(m.roughness + 0.2, 1)} metalness={m.metalness * 0.4} clearcoat={0} clearcoatRoughness={0} />
         </mesh>
       ))}
     </group>
   );
 }
 
-/* ── 3. METAL PRO ───────────────────────────────────────────────── */
-function MetalWhistle({ m }: { m: MatProps }) {
+/* ── 3. METAL PRO ── */
+function MetalWhistle({ m }: { m: M }) {
   return (
     <group rotation={[0, 0, Math.PI / 2]}>
-      {/* Main tube */}
-      <mesh castShadow>
-        <cylinderGeometry args={[0.15, 0.15, 1.9, 48]} />
-        <meshStandardMaterial {...m} envMapIntensity={2.0} />
+      <mesh castShadow receiveShadow>
+        <cylinderGeometry args={[0.15, 0.15, 1.92, 64]} />
+        <Mat m={m} />
       </mesh>
-
-      {/* Ball chamber cap */}
-      <mesh castShadow position={[0, 1.05, 0]} scale={[1, 0.8, 1]}>
-        <sphereGeometry args={[0.22, 48, 48]} />
-        <meshStandardMaterial {...m} envMapIntensity={2.0} />
+      <mesh castShadow position={[0, 1.06, 0]} scale={[1, 0.78, 1]}>
+        <sphereGeometry args={[0.23, 48, 48]} />
+        <Mat m={m} />
       </mesh>
-
-      {/* Sound hole on ball */}
-      <mesh position={[0.21, 1.05, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.07, 0.07, 0.05, 20]} />
-        <meshStandardMaterial {...dark} />
+      <mesh position={[0.225, 1.06, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.068, 0.068, 0.04, 20]} />
+        <Mat m={DARK} />
       </mesh>
-
-      {/* Tapered mouthpiece */}
-      <mesh castShadow position={[0, -1.12, 0]}>
-        <cylinderGeometry args={[0.09, 0.14, 0.48, 32]} />
-        <meshStandardMaterial {...m} envMapIntensity={2.0} />
+      <mesh castShadow position={[0, -1.13, 0]}>
+        <cylinderGeometry args={[0.09, 0.145, 0.5, 32]} />
+        <Mat m={m} />
       </mesh>
-
-      {/* Decorative rings */}
-      {([-0.6, 0, 0.6] as number[]).map((y, i) => (
+      {([-0.58, 0, 0.58] as number[]).map((y, i) => (
         <mesh key={i} position={[0, y, 0]}>
-          <torusGeometry args={[0.16, 0.018, 8, 48]} />
-          <meshStandardMaterial {...silver} />
+          <torusGeometry args={[0.162, 0.017, 8, 48]} />
+          <Mat m={SILVER} />
         </mesh>
       ))}
-
-      {/* Lanyard ring */}
-      <mesh position={[0, -1.42, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.1, 0.022, 8, 32]} />
-        <meshStandardMaterial {...silver} />
+      <mesh position={[0, -1.43, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.095, 0.022, 10, 32]} />
+        <Mat m={SILVER} />
       </mesh>
-      <mesh position={[0, -1.62, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.13, 0.022, 8, 40]} />
-        <meshStandardMaterial {...silver} />
+      <mesh position={[0, -1.64, 0]} rotation={[Math.PI / 2, 0.04, 0]}>
+        <torusGeometry args={[0.13, 0.022, 12, 64]} />
+        <Mat m={SILVER} />
       </mesh>
     </group>
   );
 }
 
-/* ── 4. GRIP ────────────────────────────────────────────────────── */
-function GripWhistle({ m }: { m: MatProps }) {
+/* ── 4. GRIP ── */
+function GripWhistle({ m }: { m: M }) {
   return (
     <group>
-      {/* Flat ergonomic body */}
-      <mesh castShadow scale={[1.5, 0.42, 1.1]}>
-        <sphereGeometry args={[0.5, 48, 48]} />
-        <meshStandardMaterial {...m} envMapIntensity={1.8} />
+      <mesh castShadow receiveShadow scale={[1.52, 0.42, 1.12]}>
+        <sphereGeometry args={[0.5, 64, 48]} />
+        <Mat m={m} />
       </mesh>
-
-      {/* Angled mouthpiece */}
-      <mesh castShadow position={[-0.86, 0.1, 0]} rotation={[0, 0, 0.25]}>
+      <mesh castShadow position={[-0.87, 0.1, 0]} rotation={[0, 0, 0.24]}>
         <boxGeometry args={[0.38, 0.19, 0.3]} />
-        <meshStandardMaterial {...m} envMapIntensity={1.8} />
+        <Mat m={m} />
       </mesh>
-
-      {/* Mouthpiece slot */}
-      <mesh position={[-0.87, 0.2, 0.16]} rotation={[0, 0, 0.25]}>
-        <boxGeometry args={[0.3, 0.05, 0.02]} />
-        <meshStandardMaterial {...dark} />
+      <mesh position={[-0.88, 0.2, 0.155]} rotation={[0, 0, 0.24]}>
+        <boxGeometry args={[0.3, 0.048, 0.014]} />
+        <Mat m={DARK} />
       </mesh>
-
-      {/* Finger groove ridges */}
-      {([-0.25, 0, 0.25] as number[]).map((x, i) => (
+      {([-0.26, 0, 0.26] as number[]).map((x, i) => (
         <mesh key={i} castShadow position={[x, -0.24, 0]}>
-          <boxGeometry args={[0.12, 0.08, 1.15]} />
-          <meshStandardMaterial color={m.color} roughness={Math.min(m.roughness + 0.2, 1)} metalness={m.metalness * 0.4} />
+          <boxGeometry args={[0.13, 0.08, 1.16]} />
+          <meshPhysicalMaterial color={m.color} roughness={Math.min(m.roughness + 0.22, 1)} metalness={m.metalness * 0.35} clearcoat={0} clearcoatRoughness={0} />
         </mesh>
       ))}
-
-      {/* Grip texture bumps on top */}
-      {([-0.35, -0.12, 0.12, 0.35] as number[]).map((x, i) => (
+      {([-0.36, -0.12, 0.12, 0.36] as number[]).map((x, i) => (
         <mesh key={i} position={[x, 0.22, 0]}>
-          <sphereGeometry args={[0.06, 12, 12]} />
-          <meshStandardMaterial color={m.color} roughness={Math.min(m.roughness + 0.3, 1)} metalness={m.metalness * 0.3} />
+          <sphereGeometry args={[0.058, 16, 16]} />
+          <meshPhysicalMaterial color={m.color} roughness={Math.min(m.roughness + 0.3, 1)} metalness={m.metalness * 0.3} clearcoat={0} clearcoatRoughness={0} />
         </mesh>
       ))}
-
-      {/* Keyring */}
-      <mesh position={[0.86, 0.1, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.07, 0.02, 8, 32]} />
-        <meshStandardMaterial {...m} envMapIntensity={1.8} />
+      <mesh position={[0.87, 0.1, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.068, 0.02, 10, 32]} />
+        <Mat m={m} />
       </mesh>
-      <mesh position={[0.86, 0.28, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.11, 0.021, 8, 40]} />
-        <meshStandardMaterial {...silver} />
+      <mesh position={[0.87, 0.3, 0]} rotation={[Math.PI / 2, 0.04, 0]}>
+        <torusGeometry args={[0.112, 0.021, 12, 64]} />
+        <Mat m={SILVER} />
       </mesh>
     </group>
   );
 }
 
-/* ── 5. ULTRA MINI ──────────────────────────────────────────────── */
-function MiniWhistle({ m }: { m: MatProps }) {
+/* ── 5. ULTRA MINI ── */
+function MiniWhistle({ m }: { m: M }) {
   return (
     <group>
-      {/* Round ball body */}
-      <mesh castShadow>
-        <sphereGeometry args={[0.5, 64, 64]} />
-        <meshStandardMaterial {...m} envMapIntensity={2.0} />
+      <mesh castShadow receiveShadow>
+        <sphereGeometry args={[0.52, 128, 64]} />
+        <Mat m={m} />
       </mesh>
-
-      {/* Small tube mouthpiece */}
-      <mesh castShadow position={[-0.6, 0.1, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.1, 0.13, 0.35, 32]} />
-        <meshStandardMaterial {...m} envMapIntensity={2.0} />
+      <mesh castShadow position={[-0.62, 0.1, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.1, 0.135, 0.36, 32]} />
+        <Mat m={m} />
       </mesh>
-
-      {/* Mouthpiece inner dark */}
-      <mesh position={[-0.77, 0.1, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.065, 0.065, 0.05, 20]} />
-        <meshStandardMaterial {...dark} />
+      <mesh position={[-0.8, 0.1, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.062, 0.062, 0.04, 20]} />
+        <Mat m={DARK} />
       </mesh>
-
-      {/* Sound hole on top of ball */}
-      <mesh position={[0, 0.51, 0]}>
-        <cylinderGeometry args={[0.08, 0.08, 0.05, 20]} />
-        <meshStandardMaterial {...dark} />
+      <mesh position={[0, 0.525, 0]}>
+        <cylinderGeometry args={[0.08, 0.08, 0.04, 20]} />
+        <Mat m={DARK} />
       </mesh>
-
-      {/* Embossed equator ring */}
       <mesh>
-        <torusGeometry args={[0.5, 0.015, 8, 64]} />
-        <meshStandardMaterial color="#999999" roughness={0.1} metalness={0.95} />
+        <torusGeometry args={[0.52, 0.013, 8, 128]} />
+        <Mat m={SILVER} />
       </mesh>
-
-      {/* Decorative dots */}
       {([0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2] as number[]).map((a, i) => (
-        <mesh key={i} position={[Math.cos(a) * 0.5, 0, Math.sin(a) * 0.5]}>
-          <sphereGeometry args={[0.045, 12, 12]} />
-          <meshStandardMaterial color="#aaaaaa" roughness={0.1} metalness={0.95} />
+        <mesh key={i} position={[Math.cos(a) * 0.52, 0, Math.sin(a) * 0.52]}>
+          <sphereGeometry args={[0.042, 16, 16]} />
+          <Mat m={SILVER} />
         </mesh>
       ))}
-
-      {/* Keyring */}
-      <mesh position={[-0.78, 0.28, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.1, 0.02, 8, 40]} />
-        <meshStandardMaterial {...silver} />
+      <mesh position={[-0.82, 0.28, 0]} rotation={[Math.PI / 2, 0.04, 0]}>
+        <torusGeometry args={[0.108, 0.021, 12, 64]} />
+        <Mat m={SILVER} />
       </mesh>
     </group>
   );
 }
 
-/* ── Main export ────────────────────────────────────────────────── */
+/* ── Root export ── */
 export default function WhistleModel({ color, design, whistleType = 'pea' }: Props) {
-  const groupRef = useRef<THREE.Group>(null);
+  const ref = useRef<THREE.Group>(null);
   const mat = designMaterials[design] ?? designMaterials.Classic;
-  const m: MatProps = { color, roughness: mat.roughness, metalness: mat.metalness };
+  const m: M = { ...mat, color, envMapIntensity: 2.2 };
 
   useFrame((state) => {
-    if (!groupRef.current) return;
-    groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.9) * 0.07;
+    if (!ref.current) return;
+    ref.current.position.y = Math.sin(state.clock.elapsedTime * 0.85) * 0.07;
   });
 
   return (
-    <group ref={groupRef} scale={1.25}>
+    <group ref={ref} scale={1.28}>
       {whistleType === 'pea'   && <PeaWhistle   m={m} />}
       {whistleType === 'fox40' && <Fox40Whistle  m={m} />}
       {whistleType === 'metal' && <MetalWhistle  m={m} />}

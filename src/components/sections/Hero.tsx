@@ -2,14 +2,14 @@
 import { Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
-import { Environment, Float, Stars } from '@react-three/drei';
+import { Environment, Float, Stars, Lightformer } from '@react-three/drei';
 import WhistleModel from '@/components/three/WhistleModel';
 import { ChevronDown } from 'lucide-react';
 
 export default function Hero() {
   return (
     <section className="relative h-screen overflow-hidden">
-      {/* Dark stadium-feel background — replace this div with a <video> element for real footage */}
+      {/* Dark stadium background — replace with <video> for real footage */}
       <div
         className="absolute inset-0"
         style={{
@@ -21,22 +21,38 @@ export default function Hero() {
 
       {/* 3D Canvas */}
       <div className="absolute inset-0 z-0">
-        <Canvas camera={{ position: [0, 0, 4.5], fov: 42 }} gl={{ antialias: true, alpha: true }}>
-          <ambientLight intensity={0.4} />
-          <pointLight position={[8, 8, 8]} intensity={3} color="#ffffff" />
-          <pointLight position={[-8, -4, -6]} intensity={1.2} color="#ff4422" />
-          <pointLight position={[0, -6, 4]} intensity={0.6} color="#4488ff" />
+        <Canvas shadows camera={{ position: [0, 0.2, 4.8], fov: 42 }} gl={{ antialias: true, alpha: true }}>
+          <ambientLight intensity={0.3} />
+          <directionalLight
+            castShadow
+            position={[5, 8, 5]}
+            intensity={2.5}
+            shadow-mapSize={[2048, 2048]}
+            shadow-camera-near={0.1}
+            shadow-camera-far={20}
+            shadow-camera-top={4}
+            shadow-camera-bottom={-4}
+            shadow-camera-left={-4}
+            shadow-camera-right={4}
+          />
+          <pointLight position={[-6, -3, -4]} intensity={1.0} color="#ff3311" />
+          <pointLight position={[0, -5, 3]}   intensity={0.5} color="#3366ff" />
+
           <Suspense fallback={null}>
             <Stars radius={80} depth={60} count={4000} factor={3.5} saturation={0} fade speed={0.6} />
-            <Environment preset="city" />
-            <Float speed={1.4} rotationIntensity={0.3} floatIntensity={0.5}>
-              <WhistleModel color="#cc2200" design="Pro" whistleType="pea" />
+            <Environment resolution={512} frames={Infinity}>
+              <Lightformer intensity={3}   position={[5, 5, 5]}   color="white"   form="ring" scale={4} />
+              <Lightformer intensity={1.5} position={[-5, -3, -3]} color="#ff4422" form="rect"  scale={3} />
+              <Lightformer intensity={0.8} position={[0, -5, 3]}   color="#4488ff" form="rect"  scale={2} />
+            </Environment>
+            <Float speed={1.3} rotationIntensity={0.28} floatIntensity={0.5}>
+              <WhistleModel color="#cc2200" design="Classic" whistleType="pea" />
             </Float>
           </Suspense>
         </Canvas>
       </div>
 
-      {/* Text */}
+      {/* Text overlay */}
       <div className="relative z-20 flex flex-col items-center justify-center h-full text-center px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -53,7 +69,6 @@ export default function Hero() {
             Dein Pfiff. Deine Pfeifn.
           </p>
         </motion.div>
-
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

@@ -1,19 +1,24 @@
 export const whistleColors = [
-  { name: 'Schwarz', hex: '#1c1c1e', tw: 'bg-zinc-900' },
-  { name: 'Rot',     hex: '#cc2200', tw: 'bg-red-700'  },
-  { name: 'Blau',    hex: '#1a56db', tw: 'bg-blue-600' },
-  { name: 'Grün',    hex: '#16653a', tw: 'bg-green-700'},
-  { name: 'Gelb',    hex: '#ca8a04', tw: 'bg-yellow-600'},
+  { name: 'Schwarz', hex: '#1c1c1e' },
+  { name: 'Rot',     hex: '#cc2200' },
+  { name: 'Blau',    hex: '#1a56db' },
+  { name: 'Grün',    hex: '#16653a' },
+  { name: 'Gelb',    hex: '#ca8a04' },
 ];
+
+export type DesignMaterial = {
+  roughness: number; metalness: number;
+  clearcoat: number; clearcoatRoughness: number;
+};
 
 export const whistleDesigns = ['Classic', 'Pro', 'Carbon', 'Elite', 'Sport'] as const;
 
-export const designMaterials: Record<string, { roughness: number; metalness: number }> = {
-  Classic: { roughness: 0.3,  metalness: 0.8  },
-  Pro:     { roughness: 0.05, metalness: 0.95 },
-  Carbon:  { roughness: 0.7,  metalness: 0.15 },
-  Elite:   { roughness: 0.02, metalness: 1.0  },
-  Sport:   { roughness: 0.55, metalness: 0.45 },
+export const designMaterials: Record<string, DesignMaterial> = {
+  Classic: { roughness: 0.12, metalness: 0.0,  clearcoat: 0.95, clearcoatRoughness: 0.08 },
+  Pro:     { roughness: 0.04, metalness: 0.92, clearcoat: 0.1,  clearcoatRoughness: 0.05 },
+  Carbon:  { roughness: 0.62, metalness: 0.1,  clearcoat: 0.2,  clearcoatRoughness: 0.3  },
+  Elite:   { roughness: 0.02, metalness: 1.0,  clearcoat: 0.0,  clearcoatRoughness: 0.0  },
+  Sport:   { roughness: 0.48, metalness: 0.0,  clearcoat: 0.5,  clearcoatRoughness: 0.32 },
 };
 
 export const whistleTypes = [
@@ -35,10 +40,10 @@ export const whistleTones = [
 ];
 
 export const features = [
-  { icon: '🎵', title: 'Präziser Klang',   desc: 'Jede Pfeifn ist auf maximale Lautstärke und kristallklare Tonreinheit optimiert.' },
-  { icon: '⚙️', title: '3D-Konfigurator',  desc: 'Gestalte deine Pfeifn in Echtzeit – Farbe, Design und Klang nach deinem Geschmack.' },
-  { icon: '⭐', title: 'Premium Material', desc: 'Hochwertige Materialien und präzise Verarbeitung für Profis und Amateure.' },
-  { icon: '🚀', title: 'Express-Lieferung',desc: 'Deine individuelle Pfeifn in wenigen Werktagen bei dir – weltweit.' },
+  { icon: '🎵', title: 'Präziser Klang',    desc: 'Jede Pfeifn ist auf maximale Lautstärke und kristallklare Tonreinheit optimiert.' },
+  { icon: '⚙️', title: '3D-Konfigurator',   desc: 'Gestalte deine Pfeifn in Echtzeit – Farbe, Design und Klang nach deinem Geschmack.' },
+  { icon: '⭐', title: 'Premium Material',  desc: 'Hochwertige Materialien und präzise Verarbeitung für Profis und Amateure.' },
+  { icon: '🚀', title: 'Express-Lieferung', desc: 'Deine individuelle Pfeifn in wenigen Werktagen bei dir – weltweit.' },
 ];
 
 export const testimonials = [
@@ -49,16 +54,16 @@ export const testimonials = [
 ];
 
 export const galleryItems = [
-  { emoji: '🎯', label: 'Classic Schwarz',     category: 'Pfeifn' },
-  { emoji: '🔴', label: 'Pro Rot',             category: 'Pfeifn' },
-  { emoji: '🔵', label: 'Elite Blau',          category: 'Pfeifn' },
-  { emoji: '🟡', label: 'Sport Gelb',          category: 'Pfeifn' },
-  { emoji: '🏟️', label: 'Allianz Arena',       category: 'Stadien' },
-  { emoji: '🏟️', label: 'Signal Iduna Park',   category: 'Stadien' },
-  { emoji: '👨‍⚖️', label: 'Bundesliga-Einsatz', category: 'Schiedsrichter' },
-  { emoji: '👩‍⚖️', label: 'Champions League',  category: 'Schiedsrichter' },
-  { emoji: '⚽', label: 'Elfmeter-Entscheid',  category: 'Sportmomente' },
-  { emoji: '🏀', label: 'Basketball Finale',   category: 'Sportmomente' },
-  { emoji: '🌿', label: 'Carbon Elite',        category: 'Pfeifn' },
-  { emoji: '🏆', label: 'WM-Finale',           category: 'Sportmomente' },
+  { emoji: '🎯', label: 'Classic Schwarz',     category: 'Pfeifn'        },
+  { emoji: '🔴', label: 'Pro Rot',             category: 'Pfeifn'        },
+  { emoji: '🔵', label: 'Elite Blau',          category: 'Pfeifn'        },
+  { emoji: '🟡', label: 'Sport Gelb',          category: 'Pfeifn'        },
+  { emoji: '🏟️', label: 'Allianz Arena',       category: 'Stadien'       },
+  { emoji: '🏟️', label: 'Signal Iduna Park',   category: 'Stadien'       },
+  { emoji: '👨‍⚖️', label: 'Bundesliga-Einsatz', category: 'Schiedsrichter'},
+  { emoji: '👩‍⚖️', label: 'Champions League',  category: 'Schiedsrichter'},
+  { emoji: '⚽', label: 'Elfmeter-Entscheid',  category: 'Sportmomente'  },
+  { emoji: '🏀', label: 'Basketball Finale',   category: 'Sportmomente'  },
+  { emoji: '🌿', label: 'Carbon Elite',        category: 'Pfeifn'        },
+  { emoji: '🏆', label: 'WM-Finale',           category: 'Sportmomente'  },
 ];
