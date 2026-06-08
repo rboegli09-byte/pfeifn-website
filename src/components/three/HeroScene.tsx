@@ -20,7 +20,7 @@ export default function HeroScene() {
         <Stars radius={80} depth={60} count={4000} factor={3.5} saturation={0} fade speed={0.6} />
         <Environment preset="city" />
         <Float speed={1.4} rotationIntensity={0.25} floatIntensity={0.6}>
-          <WhistleModel color="#cc2200" design="Pro" autoRotate={false} />
+          <WhistleModel color="#cc2200" design="Pro" whistleType="pea" />
         </Float>
       </Suspense>
     </Canvas>

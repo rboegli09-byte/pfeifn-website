@@ -5,20 +5,20 @@ import { OrbitControls, Environment, ContactShadows } from '@react-three/drei';
 import { motion } from 'framer-motion';
 import { Play, Square } from 'lucide-react';
 import WhistleModel from '@/components/three/WhistleModel';
-import { whistleColors, whistleDesigns, whistleTones } from '@/lib/data';
+import { whistleColors, whistleDesigns, whistleTypes, whistleTones, WhistleTypeId } from '@/lib/data';
+import { playWhistleTone, ToneId } from '@/lib/whistleAudio';
 
 export default function Configurator() {
-  const [color, setColor]    = useState(whistleColors[1].hex);
-  const [design, setDesign]  = useState('Classic');
-  const [playing, setPlaying] = useState<number | null>(null);
+  const [color,       setColor]       = useState(whistleColors[1].hex);
+  const [design,      setDesign]      = useState('Classic');
+  const [whistleType, setWhistleType] = useState<WhistleTypeId>('pea');
+  const [playing,     setPlaying]     = useState<ToneId | null>(null);
 
-  const playTone = useCallback((id: number) => {
-    if (playing === id) {
-      setPlaying(null);
-      return;
-    }
+  const handleTone = useCallback((id: ToneId) => {
+    if (playing === id) { setPlaying(null); return; }
+    const dur = playWhistleTone(id);
     setPlaying(id);
-    setTimeout(() => setPlaying(null), 2200);
+    setTimeout(() => setPlaying(null), dur * 1000 + 100);
   }, [playing]);
 
   return (
@@ -31,44 +31,57 @@ export default function Configurator() {
           className="text-center mb-16"
         >
           <p className="text-brand text-xs uppercase tracking-widest font-semibold mb-3">3D-Konfigurator</p>
-          <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-white">
-            Gestalte deine Pfeifn
-          </h2>
+          <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-white">Gestalte deine Pfeifn</h2>
           <p className="text-zinc-400 mt-4 max-w-xl mx-auto">
-            Wähle Farbe, Design und Ton – deine Pfeifn wird in Echtzeit aktualisiert.
+            Wähle Modell, Farbe, Design und Ton – in Echtzeit.
           </p>
         </motion.div>
 
         <div className="grid md:grid-cols-2 gap-8 items-center">
           {/* 3D Canvas */}
-          <div className="relative h-[420px] sm:h-[500px] rounded-2xl overflow-hidden bg-zinc-900/40 border border-zinc-800">
-            <Canvas camera={{ position: [0, 0.5, 5], fov: 40 }} gl={{ antialias: true }}>
+          <div className="relative h-[420px] sm:h-[520px] rounded-2xl overflow-hidden bg-zinc-900/40 border border-zinc-800">
+            <Canvas camera={{ position: [0, 0.4, 4.5], fov: 42 }} gl={{ antialias: true }}>
               <ambientLight intensity={0.5} />
               <pointLight position={[6, 6, 6]} intensity={2.5} />
               <pointLight position={[-6, -4, -4]} intensity={0.8} color="#6688ff" />
               <Suspense fallback={null}>
                 <Environment preset="studio" />
-                <WhistleModel color={color} design={design} autoRotate={false} />
-                <ContactShadows position={[0, -1.5, 0]} opacity={0.4} blur={2} far={4} />
+                <WhistleModel color={color} design={design} whistleType={whistleType} />
+                <ContactShadows position={[0, -1.4, 0]} opacity={0.4} blur={2} far={4} />
               </Suspense>
-              <OrbitControls
-                enablePan={false}
-                minDistance={3}
-                maxDistance={8}
-                autoRotate
-                autoRotateSpeed={0.8}
-              />
+              <OrbitControls enablePan={false} minDistance={2.5} maxDistance={7} autoRotate autoRotateSpeed={0.7} />
             </Canvas>
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-xs text-zinc-600 pointer-events-none">
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-xs text-zinc-600 pointer-events-none select-none">
               Ziehen zum Drehen · Scrollen zum Zoomen
             </div>
           </div>
 
           {/* Controls */}
-          <div className="space-y-8">
+          <div className="space-y-7">
+            {/* Whistle Type */}
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-widest mb-3">Modell</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {whistleTypes.map((wt) => (
+                  <button
+                    key={wt.id}
+                    onClick={() => setWhistleType(wt.id)}
+                    className={`px-3 py-2.5 rounded-xl text-left border transition-all duration-200 ${
+                      whistleType === wt.id
+                        ? 'border-brand bg-brand/15 text-white'
+                        : 'border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200'
+                    }`}
+                  >
+                    <p className="text-sm font-semibold leading-tight">{wt.name}</p>
+                    <p className="text-[10px] text-zinc-500 mt-0.5 leading-tight">{wt.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Color */}
             <div>
-              <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-widest mb-4">Farbe</h3>
+              <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-widest mb-3">Farbe</h3>
               <div className="flex flex-wrap gap-3">
                 {whistleColors.map((c) => (
                   <button
@@ -76,21 +89,21 @@ export default function Configurator() {
                     onClick={() => setColor(c.hex)}
                     title={c.name}
                     className={`w-11 h-11 rounded-full border-2 transition-all duration-200 hover:scale-110 ${
-                      color === c.hex ? 'border-white scale-110' : 'border-zinc-700'
+                      color === c.hex ? 'border-white scale-110 shadow-lg' : 'border-zinc-700'
                     }`}
                     style={{ backgroundColor: c.hex }}
                     aria-label={c.name}
                   />
                 ))}
               </div>
-              <p className="text-zinc-500 text-sm mt-2">
-                {whistleColors.find((c) => c.hex === color)?.name ?? ''}
+              <p className="text-zinc-500 text-xs mt-2">
+                {whistleColors.find((c) => c.hex === color)?.name}
               </p>
             </div>
 
             {/* Design */}
             <div>
-              <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-widest mb-4">Design</h3>
+              <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-widest mb-3">Design</h3>
               <div className="flex flex-wrap gap-2">
                 {whistleDesigns.map((d) => (
                   <button
@@ -110,7 +123,7 @@ export default function Configurator() {
 
             {/* Tones */}
             <div>
-              <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-widest mb-4">Ton</h3>
+              <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-widest mb-3">Ton</h3>
               <div className="space-y-2">
                 {whistleTones.map((t) => (
                   <div
@@ -122,15 +135,17 @@ export default function Configurator() {
                       <p className="text-xs text-zinc-500">{t.desc}</p>
                     </div>
                     <button
-                      onClick={() => playTone(t.id)}
+                      onClick={() => handleTone(t.id)}
                       className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${
                         playing === t.id
-                          ? 'bg-brand text-white scale-95'
+                          ? 'bg-brand text-white scale-95 animate-pulse'
                           : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
                       }`}
                       aria-label={playing === t.id ? 'Stop' : 'Play'}
                     >
-                      {playing === t.id ? <Square size={14} /> : <Play size={14} className="ml-0.5" />}
+                      {playing === t.id
+                        ? <Square size={13} />
+                        : <Play  size={13} className="ml-0.5" />}
                     </button>
                   </div>
                 ))}

@@ -16,19 +16,29 @@ export const designMaterials: Record<string, { roughness: number; metalness: num
   Sport:   { roughness: 0.55, metalness: 0.45 },
 };
 
+export const whistleTypes = [
+  { id: 'pea',   name: 'Pea Classic', desc: 'Klassische Erbsenpfeife' },
+  { id: 'fox40', name: 'Fox 40',      desc: 'Kammer-Pfeife, kein Pea' },
+  { id: 'metal', name: 'Metal Pro',   desc: 'Traditionell & lang'     },
+  { id: 'grip',  name: 'Grip',        desc: 'Ergonomisch & flach'     },
+  { id: 'mini',  name: 'Ultra Mini',  desc: 'Kompakt & rund'          },
+] as const;
+
+export type WhistleTypeId = typeof whistleTypes[number]['id'];
+
 export const whistleTones = [
-  { id: 1, name: 'Ton 1', desc: 'Kurz & scharf'     },
-  { id: 2, name: 'Ton 2', desc: 'Tief & kräftig'    },
-  { id: 3, name: 'Ton 3', desc: 'Dreifach-Signal'   },
-  { id: 4, name: 'Ton 4', desc: 'Langanhaltend'     },
-  { id: 5, name: 'Ton 5', desc: 'Staccato-Burst'    },
+  { id: 1 as const, name: 'Ton 1', desc: 'Kurz & scharf'     },
+  { id: 2 as const, name: 'Ton 2', desc: 'Tief & kräftig'    },
+  { id: 3 as const, name: 'Ton 3', desc: 'Dreifach-Signal'   },
+  { id: 4 as const, name: 'Ton 4', desc: 'Langanhaltend'     },
+  { id: 5 as const, name: 'Ton 5', desc: 'Staccato-Burst'    },
 ];
 
 export const features = [
-  { icon: '🎵', title: 'Präziser Klang',       desc: 'Jede Pfeifn ist auf maximale Lautstärke und kristallklare Tonreinheit optimiert.' },
-  { icon: '⚙️', title: '3D-Konfigurator',       desc: 'Gestalte deine Pfeifn in Echtzeit – Farbe, Design und Klang nach deinem Geschmack.' },
-  { icon: '⭐', title: 'Premium Material',      desc: 'Hochwertige Materialien und präzise Verarbeitung für Profis und Amateure.' },
-  { icon: '🚀', title: 'Express-Lieferung',     desc: 'Deine individuelle Pfeifn ist in wenigen Werktagen bei dir – weltweit.' },
+  { icon: '🎵', title: 'Präziser Klang',   desc: 'Jede Pfeifn ist auf maximale Lautstärke und kristallklare Tonreinheit optimiert.' },
+  { icon: '⚙️', title: '3D-Konfigurator',  desc: 'Gestalte deine Pfeifn in Echtzeit – Farbe, Design und Klang nach deinem Geschmack.' },
+  { icon: '⭐', title: 'Premium Material', desc: 'Hochwertige Materialien und präzise Verarbeitung für Profis und Amateure.' },
+  { icon: '🚀', title: 'Express-Lieferung',desc: 'Deine individuelle Pfeifn in wenigen Werktagen bei dir – weltweit.' },
 ];
 
 export const testimonials = [

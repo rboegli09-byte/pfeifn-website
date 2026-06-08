@@ -9,20 +9,19 @@ import { ChevronDown } from 'lucide-react';
 export default function Hero() {
   return (
     <section className="relative h-screen overflow-hidden">
-      {/* Animated dark background — replace the div below with a <video> tag for real footage */}
+      {/* Dark stadium-feel background — replace this div with a <video> element for real footage */}
       <div
-        className="absolute inset-0 hero-bg"
+        className="absolute inset-0"
         style={{
           background:
             'radial-gradient(ellipse 80% 60% at 20% 60%, #1a0505 0%, #09090b 55%), radial-gradient(ellipse 60% 40% at 80% 30%, #120808 0%, transparent 70%)',
         }}
       />
-      {/* Vignette overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-zinc-950/40 pointer-events-none z-10" />
 
       {/* 3D Canvas */}
       <div className="absolute inset-0 z-0">
-        <Canvas camera={{ position: [0, 0, 5.5], fov: 42 }} gl={{ antialias: true, alpha: true }}>
+        <Canvas camera={{ position: [0, 0, 4.5], fov: 42 }} gl={{ antialias: true, alpha: true }}>
           <ambientLight intensity={0.4} />
           <pointLight position={[8, 8, 8]} intensity={3} color="#ffffff" />
           <pointLight position={[-8, -4, -6]} intensity={1.2} color="#ff4422" />
@@ -30,14 +29,14 @@ export default function Hero() {
           <Suspense fallback={null}>
             <Stars radius={80} depth={60} count={4000} factor={3.5} saturation={0} fade speed={0.6} />
             <Environment preset="city" />
-            <Float speed={1.4} rotationIntensity={0.25} floatIntensity={0.6}>
-              <WhistleModel color="#cc2200" design="Pro" autoRotate={false} />
+            <Float speed={1.4} rotationIntensity={0.3} floatIntensity={0.5}>
+              <WhistleModel color="#cc2200" design="Pro" whistleType="pea" />
             </Float>
           </Suspense>
         </Canvas>
       </div>
 
-      {/* Text content */}
+      {/* Text */}
       <div className="relative z-20 flex flex-col items-center justify-center h-full text-center px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -76,7 +75,6 @@ export default function Hero() {
         </motion.div>
       </div>
 
-      {/* Scroll indicator */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
