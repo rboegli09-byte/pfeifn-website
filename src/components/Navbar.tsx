@@ -1,17 +1,20 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { ShoppingCart } from 'lucide-react';
+import { useCart } from '@/context/CartContext';
 
 const navLinks = [
   { href: '#konfigurator', label: 'Konfigurator' },
   { href: '#vorteile',     label: 'Vorteile'     },
-  { href: '#galerie',      label: 'Galerie'      },
+  { href: '#bewertungen',  label: 'Bewertungen'  },
   { href: '#kontakt',      label: 'Kontakt'      },
 ];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen]         = useState(false);
+  const { count, open: openCart } = useCart();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -33,19 +36,13 @@ export default function Navbar() {
           <span className="text-2xl font-black tracking-tighter text-white">
             PFEIF<span className="text-brand">N</span>
           </span>
-          <span className="text-[10px] text-zinc-500 uppercase tracking-widest hidden sm:block">
-            Logo Platzhalter
-          </span>
         </a>
 
         {/* Desktop */}
         <ul className="hidden md:flex items-center gap-8">
           {navLinks.map((l) => (
             <li key={l.href}>
-              <a
-                href={l.href}
-                className="text-sm text-zinc-400 hover:text-white transition-colors duration-200"
-              >
+              <a href={l.href} className="text-sm text-zinc-400 hover:text-white transition-colors duration-200">
                 {l.label}
               </a>
             </li>
@@ -60,30 +57,46 @@ export default function Navbar() {
           </li>
         </ul>
 
-        {/* Mobile toggle */}
-        <button
-          className="md:hidden text-zinc-400 hover:text-white"
-          onClick={() => setOpen(!open)}
-          aria-label="Menü"
-        >
-          <div className="space-y-1.5">
-            <span className={`block h-0.5 w-6 bg-current transition-all ${open ? 'rotate-45 translate-y-2' : ''}`} />
-            <span className={`block h-0.5 w-6 bg-current transition-all ${open ? 'opacity-0' : ''}`} />
-            <span className={`block h-0.5 w-6 bg-current transition-all ${open ? '-rotate-45 -translate-y-2' : ''}`} />
-          </div>
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Cart button */}
+          <button
+            onClick={openCart}
+            className="relative p-2 text-zinc-400 hover:text-white transition-colors"
+            aria-label="Warenkorb"
+          >
+            <ShoppingCart size={22} />
+            {count > 0 && (
+              <motion.span
+                key={count}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -top-0.5 -right-0.5 bg-brand text-white text-[10px] font-bold w-4.5 h-4.5 min-w-[18px] min-h-[18px] rounded-full flex items-center justify-center"
+              >
+                {count}
+              </motion.span>
+            )}
+          </button>
+
+          {/* Mobile toggle */}
+          <button
+            className="md:hidden text-zinc-400 hover:text-white"
+            onClick={() => setOpen(!open)}
+            aria-label="Menü"
+          >
+            <div className="space-y-1.5">
+              <span className={`block h-0.5 w-6 bg-current transition-all ${open ? 'rotate-45 translate-y-2' : ''}`} />
+              <span className={`block h-0.5 w-6 bg-current transition-all ${open ? 'opacity-0' : ''}`} />
+              <span className={`block h-0.5 w-6 bg-current transition-all ${open ? '-rotate-45 -translate-y-2' : ''}`} />
+            </div>
+          </button>
+        </div>
       </div>
 
       {/* Mobile menu */}
       {open && (
         <div className="md:hidden bg-zinc-950/95 border-t border-zinc-800 px-6 py-4 space-y-3">
           {navLinks.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              onClick={() => setOpen(false)}
-              className="block text-zinc-300 hover:text-white py-1"
-            >
+            <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="block text-zinc-300 hover:text-white py-1">
               {l.label}
             </a>
           ))}

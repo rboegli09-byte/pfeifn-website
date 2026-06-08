@@ -22,11 +22,11 @@ export const designMaterials: Record<string, DesignMaterial> = {
 };
 
 export const whistleTypes = [
-  { id: 'pea',   name: 'Pea Classic', desc: 'Klassische Erbsenpfeife' },
-  { id: 'fox40', name: 'Fox 40',      desc: 'Kammer-Pfeife, kein Pea' },
-  { id: 'metal', name: 'Metal Pro',   desc: 'Traditionell & lang'     },
-  { id: 'grip',  name: 'Grip',        desc: 'Ergonomisch & flach'     },
-  { id: 'mini',  name: 'Ultra Mini',  desc: 'Kompakt & rund'          },
+  { id: 'pea',   name: 'Pea Classic', desc: 'Klassische Erbsenpfeife', price: 34.90 },
+  { id: 'fox40', name: 'Fox 40',      desc: 'Kammer-Pfeife, kein Pea', price: 39.90 },
+  { id: 'metal', name: 'Metal Pro',   desc: 'Traditionell & lang',     price: 44.90 },
+  { id: 'grip',  name: 'Grip',        desc: 'Ergonomisch & flach',     price: 37.90 },
+  { id: 'mini',  name: 'Ultra Mini',  desc: 'Kompakt & rund',          price: 29.90 },
 ] as const;
 
 export type WhistleTypeId = typeof whistleTypes[number]['id'];

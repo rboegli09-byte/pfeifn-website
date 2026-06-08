@@ -2,18 +2,22 @@
 import { useState, useCallback, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, ContactShadows, Lightformer } from '@react-three/drei';
-import { motion } from 'framer-motion';
-import { Play, Square, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Play, Square, Check, ShoppingCart } from 'lucide-react';
 import WhistleModel from '@/components/three/WhistleModel';
 import { whistleColors, whistleDesigns, whistleTypes, whistleTones, WhistleTypeId } from '@/lib/data';
 import { playWhistleTone, ToneId } from '@/lib/whistleAudio';
+import { useCart } from '@/context/CartContext';
 
 export default function Configurator() {
+  const { add } = useCart();
+
   const [color,        setColor]        = useState(whistleColors[1].hex);
   const [design,       setDesign]       = useState('Classic');
   const [whistleType,  setWhistleType]  = useState<WhistleTypeId>('pea');
   const [playing,      setPlaying]      = useState<ToneId | null>(null);
   const [selectedTone, setSelectedTone] = useState<ToneId | null>(null);
+  const [added,        setAdded]        = useState(false);
 
   const handlePlay = useCallback((id: ToneId, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -23,15 +27,25 @@ export default function Configurator() {
     setTimeout(() => setPlaying(null), dur * 1000 + 100);
   }, [playing]);
 
-  const handleOrder = () => {
-    const colorName = whistleColors.find((c) => c.hex === color)?.name ?? color;
-    const toneName  = selectedTone ? whistleTones.find((t) => t.id === selectedTone)?.name : null;
-    sessionStorage.setItem('pfeifn_order', JSON.stringify({
-      model:  whistleTypes.find((w) => w.id === whistleType)?.name ?? whistleType,
-      color:  colorName, design,
-      tone:   toneName ?? 'kein Ton gewählt',
-    }));
-    window.location.hash = 'kontakt';
+  const handleAddToCart = () => {
+    if (!selectedTone) return;
+    const wt        = whistleTypes.find(w => w.id === whistleType)!;
+    const colorObj  = whistleColors.find(c => c.hex === color)!;
+    const toneObj   = whistleTones.find(t => t.id === selectedTone)!;
+
+    add({
+      modelId:   whistleType,
+      modelName: wt.name,
+      color,
+      colorName: colorObj.name,
+      design,
+      toneId:    selectedTone,
+      toneName:  toneObj.name,
+      price:     wt.price,
+    });
+
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
   };
 
   return (
@@ -46,7 +60,7 @@ export default function Configurator() {
           <p className="text-brand text-xs uppercase tracking-widest font-semibold mb-3">3D-Konfigurator</p>
           <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-white">Gestalte deine Pfeifn</h2>
           <p className="text-zinc-400 mt-4 max-w-xl mx-auto">
-            Modell, Farbe, Design und Ton – dann direkt bestellen.
+            Modell, Farbe, Design und Ton – dann direkt in den Warenkorb.
           </p>
         </motion.div>
 
@@ -55,23 +69,27 @@ export default function Configurator() {
           <div className="relative h-[440px] sm:h-[540px] rounded-2xl overflow-hidden bg-zinc-900/50 border border-zinc-800">
             <Canvas shadows camera={{ position: [0, 0.3, 4.6], fov: 42 }} gl={{ antialias: true }}>
               <ambientLight intensity={0.35} />
-              <directionalLight
-                castShadow
-                position={[4, 7, 4]}
-                intensity={2.2}
-                shadow-mapSize={[1024, 1024]}
-              />
+              <directionalLight castShadow position={[4, 7, 4]} intensity={2.2} shadow-mapSize={[1024, 1024]} />
               <pointLight position={[-5, -3, -3]} intensity={0.8} color="#6688ff" />
               <Suspense fallback={null}>
                 <Environment resolution={256} frames={Infinity}>
-                  <Lightformer intensity={4}   position={[4, 4, 4]}   color="white"   form="ring" scale={3} />
-                  <Lightformer intensity={1.2} position={[-4, -2, -2]} color="#88aaff" form="rect"  scale={2} />
+                  <Lightformer intensity={4}   position={[4, 4, 4]}    color="white"   form="ring" scale={3} />
+                  <Lightformer intensity={1.2} position={[-4, -2, -2]} color="#88aaff" form="rect" scale={2} />
                 </Environment>
                 <WhistleModel color={color} design={design} whistleType={whistleType} />
                 <ContactShadows position={[0, -1.5, 0]} opacity={0.45} blur={2.5} far={4} />
               </Suspense>
               <OrbitControls enablePan={false} minDistance={2.5} maxDistance={7} autoRotate autoRotateSpeed={0.7} />
             </Canvas>
+
+            {/* Price badge */}
+            <div className="absolute top-4 right-4 bg-zinc-950/80 backdrop-blur border border-zinc-700 rounded-xl px-3 py-1.5 text-right">
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider">ab</p>
+              <p className="text-white font-black text-lg leading-none">
+                CHF {whistleTypes.find(w => w.id === whistleType)?.price.toFixed(2)}
+              </p>
+            </div>
+
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-xs text-zinc-600 pointer-events-none select-none">
               Ziehen zum Drehen · Scrollen zum Zoomen
             </div>
@@ -94,7 +112,7 @@ export default function Configurator() {
                     }`}
                   >
                     <p className="text-sm font-semibold leading-tight">{wt.name}</p>
-                    <p className="text-[10px] text-zinc-500 mt-0.5 leading-tight">{wt.desc}</p>
+                    <p className="text-[10px] text-zinc-500 mt-0.5">CHF {wt.price.toFixed(2)}</p>
                   </button>
                 ))}
               </div>
@@ -117,9 +135,7 @@ export default function Configurator() {
                   />
                 ))}
               </div>
-              <p className="text-zinc-500 text-xs mt-1.5">
-                {whistleColors.find((c) => c.hex === color)?.name}
-              </p>
+              <p className="text-zinc-500 text-xs mt-1.5">{whistleColors.find(c => c.hex === color)?.name}</p>
             </div>
 
             {/* Design */}
@@ -183,33 +199,37 @@ export default function Configurator() {
               </div>
             </div>
 
-            {selectedTone && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-300"
-              >
-                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Deine Auswahl</p>
-                <p>
-                  <span className="text-white font-medium">{whistleTypes.find((w) => w.id === whistleType)?.name}</span>
-                  {' · '}{whistleColors.find((c) => c.hex === color)?.name}
-                  {' · '}{design}
-                  {' · '}<span className="text-brand font-medium">{whistleTones.find((t) => t.id === selectedTone)?.name}</span>
-                </p>
-              </motion.div>
-            )}
-
-            <button
-              onClick={handleOrder}
-              disabled={!selectedTone}
-              className={`w-full py-4 font-bold rounded-full transition-all duration-200 text-sm ${
-                selectedTone
-                  ? 'bg-brand hover:bg-brand-dark text-white hover:scale-[1.02] shadow-lg shadow-brand/30'
-                  : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-              }`}
-            >
-              {selectedTone ? 'Diese Pfeifn bestellen →' : 'Bitte zuerst einen Ton wählen'}
-            </button>
+            {/* Add to cart button */}
+            <AnimatePresence mode="wait">
+              {added ? (
+                <motion.div
+                  key="added"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="w-full py-4 bg-green-600 text-white font-bold rounded-full text-sm text-center flex items-center justify-center gap-2"
+                >
+                  <Check size={16} /> Im Warenkorb!
+                </motion.div>
+              ) : (
+                <motion.button
+                  key="add"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  onClick={handleAddToCart}
+                  disabled={!selectedTone}
+                  className={`w-full py-4 font-bold rounded-full transition-all duration-200 text-sm flex items-center justify-center gap-2 ${
+                    selectedTone
+                      ? 'bg-brand hover:bg-brand-dark text-white hover:scale-[1.02] shadow-lg shadow-brand/30'
+                      : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                  }`}
+                >
+                  <ShoppingCart size={16} />
+                  {selectedTone ? 'In den Warenkorb' : 'Bitte zuerst einen Ton wählen'}
+                </motion.button>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>

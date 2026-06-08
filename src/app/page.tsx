@@ -3,7 +3,6 @@ import { Suspense } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Features from '@/components/sections/Features';
-import Gallery from '@/components/sections/Gallery';
 import Testimonials from '@/components/sections/Testimonials';
 import About from '@/components/sections/About';
 import Contact from '@/components/sections/Contact';
@@ -37,7 +36,6 @@ export default function Home() {
         <Configurator />
       </Suspense>
       <Features />
-      <Gallery />
       <Testimonials />
       <About />
       <Contact />

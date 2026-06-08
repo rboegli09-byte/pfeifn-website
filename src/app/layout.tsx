@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import Providers from '@/components/Providers';
+import Cart from '@/components/Cart';
 
 export const metadata: Metadata = {
   title: 'Pfeifn – Dein Pfiff. Deine Pfeifn.',
@@ -15,7 +17,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="de" className="dark">
-      <body>{children}</body>
+      <body>
+        <Providers>
+          {children}
+          <Cart />
+        </Providers>
+      </body>
     </html>
   );
 }
