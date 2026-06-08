@@ -33,9 +33,11 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         <a href="#" className="flex items-center gap-2">
-          <span className="text-2xl font-black tracking-tighter text-white">
-            PFEIF<span className="text-brand">N</span>
-          </span>
+          <img
+            src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/logo.svg`}
+            alt="Pfeifn Logo"
+            className="h-10 w-auto brightness-0 invert"
+          />
         </a>
 
         {/* Desktop */}

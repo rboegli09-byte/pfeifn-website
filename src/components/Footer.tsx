@@ -5,9 +5,11 @@ export default function Footer() {
     <footer className="bg-zinc-950 border-t border-zinc-800 py-12">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          <span className="text-2xl font-black tracking-tighter text-white">
-            PFEIF<span className="text-brand">N</span>
-          </span>
+          <img
+            src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/logo.svg`}
+            alt="Pfeifn Logo"
+            className="h-12 w-auto brightness-0 invert"
+          />
 
           <div className="flex items-center gap-6 text-sm text-zinc-500">
             <a href="#" className="hover:text-white transition-colors">Impressum</a>

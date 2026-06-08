@@ -62,9 +62,11 @@ export default function Hero() {
           <p className="text-brand text-xs sm:text-sm uppercase tracking-[0.3em] font-semibold mb-4">
             Premium Pfeifen
           </p>
-          <h1 className="text-6xl sm:text-8xl lg:text-9xl font-black tracking-tighter text-white leading-none mb-4">
-            PFEIF<span className="text-brand">N</span>
-          </h1>
+          <img
+            src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/logo.svg`}
+            alt="Pfeifn Logo"
+            className="h-36 sm:h-52 lg:h-64 w-auto brightness-0 invert mb-4 mx-auto"
+          />
           <p className="text-xl sm:text-2xl text-zinc-300 font-light mt-4 mb-8">
             Dein Pfiff. Deine Pfeifn.
           </p>
