@@ -1,0 +1,54 @@
+export const whistleColors = [
+  { name: 'Schwarz', hex: '#1c1c1e', tw: 'bg-zinc-900' },
+  { name: 'Rot',     hex: '#cc2200', tw: 'bg-red-700'  },
+  { name: 'Blau',    hex: '#1a56db', tw: 'bg-blue-600' },
+  { name: 'Grün',    hex: '#16653a', tw: 'bg-green-700'},
+  { name: 'Gelb',    hex: '#ca8a04', tw: 'bg-yellow-600'},
+];
+
+export const whistleDesigns = ['Classic', 'Pro', 'Carbon', 'Elite', 'Sport'] as const;
+
+export const designMaterials: Record<string, { roughness: number; metalness: number }> = {
+  Classic: { roughness: 0.3,  metalness: 0.8  },
+  Pro:     { roughness: 0.05, metalness: 0.95 },
+  Carbon:  { roughness: 0.7,  metalness: 0.15 },
+  Elite:   { roughness: 0.02, metalness: 1.0  },
+  Sport:   { roughness: 0.55, metalness: 0.45 },
+};
+
+export const whistleTones = [
+  { id: 1, name: 'Ton 1', desc: 'Kurz & scharf'     },
+  { id: 2, name: 'Ton 2', desc: 'Tief & kräftig'    },
+  { id: 3, name: 'Ton 3', desc: 'Dreifach-Signal'   },
+  { id: 4, name: 'Ton 4', desc: 'Langanhaltend'     },
+  { id: 5, name: 'Ton 5', desc: 'Staccato-Burst'    },
+];
+
+export const features = [
+  { icon: '🎵', title: 'Präziser Klang',       desc: 'Jede Pfeifn ist auf maximale Lautstärke und kristallklare Tonreinheit optimiert.' },
+  { icon: '⚙️', title: '3D-Konfigurator',       desc: 'Gestalte deine Pfeifn in Echtzeit – Farbe, Design und Klang nach deinem Geschmack.' },
+  { icon: '⭐', title: 'Premium Material',      desc: 'Hochwertige Materialien und präzise Verarbeitung für Profis und Amateure.' },
+  { icon: '🚀', title: 'Express-Lieferung',     desc: 'Deine individuelle Pfeifn ist in wenigen Werktagen bei dir – weltweit.' },
+];
+
+export const testimonials = [
+  { name: 'Thomas K.',  role: 'FIFA-Schiedsrichter',         rating: 5, text: 'Die beste Pfeife, die ich je hatte. Der Klang ist unglaublich klar – selbst in vollen Stadien.' },
+  { name: 'Sandra M.',  role: 'Bundesliga-Schiedsrichterin', rating: 5, text: 'Der 3D-Konfigurator ist genial. Meine individuelle Pfeifn war in 3 Tagen geliefert.' },
+  { name: 'Marco R.',   role: 'Amateurfußball',              rating: 5, text: 'Endlich eine Pfeife, die zu mir passt. Pfeifn – für immer!' },
+  { name: 'Lisa W.',    role: 'Basketball-Schiedsrichterin', rating: 5, text: 'Professionell, schön gestaltet und laut. Genau das, was ich gesucht habe.' },
+];
+
+export const galleryItems = [
+  { emoji: '🎯', label: 'Classic Schwarz',     category: 'Pfeifn' },
+  { emoji: '🔴', label: 'Pro Rot',             category: 'Pfeifn' },
+  { emoji: '🔵', label: 'Elite Blau',          category: 'Pfeifn' },
+  { emoji: '🟡', label: 'Sport Gelb',          category: 'Pfeifn' },
+  { emoji: '🏟️', label: 'Allianz Arena',       category: 'Stadien' },
+  { emoji: '🏟️', label: 'Signal Iduna Park',   category: 'Stadien' },
+  { emoji: '👨‍⚖️', label: 'Bundesliga-Einsatz', category: 'Schiedsrichter' },
+  { emoji: '👩‍⚖️', label: 'Champions League',  category: 'Schiedsrichter' },
+  { emoji: '⚽', label: 'Elfmeter-Entscheid',  category: 'Sportmomente' },
+  { emoji: '🏀', label: 'Basketball Finale',   category: 'Sportmomente' },
+  { emoji: '🌿', label: 'Carbon Elite',        category: 'Pfeifn' },
+  { emoji: '🏆', label: 'WM-Finale',           category: 'Sportmomente' },
+];
