@@ -46,7 +46,7 @@ export default function About() {
 
               <div className="relative grid grid-cols-2 gap-6">
                 {[
-                  { value: '2024', label: 'Gegründet' },
+                  { value: '2026', label: 'Gegründet' },
                   { value: '100+', label: 'Individuelle Pfeifen' },
                   { value: '5★',   label: 'Kundenbewertung' },
                   { value: '3 Tage', label: 'Lieferzeit' },
