@@ -1,11 +1,7 @@
-const BASE = process.env.NEXT_PUBLIC_BASE_PATH || '';
-
-export default function Logo({ className = 'h-10 w-auto' }: { className?: string }) {
+export default function Logo({ className = '' }: { className?: string }) {
   return (
-    <img
-      src={`${BASE}/logo.png`}
-      alt="Pfeifn Logo"
-      className={className}
-    />
+    <span className={`text-2xl font-black tracking-tighter text-white ${className}`}>
+      PFEIF<span className="text-brand">N</span>
+    </span>
   );
 }
