@@ -58,7 +58,7 @@ export default function Configurator() {
           className="text-center mb-16"
         >
           <p className="text-brand text-xs uppercase tracking-widest font-semibold mb-3">3D-Konfigurator</p>
-          <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-white">Gestalte deine Pfeifn</h2>
+          <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-white">Gestalte deine Pfeifen</h2>
           <p className="text-zinc-400 mt-4 max-w-xl mx-auto">
             Modell, Farbe, Design und Ton – dann direkt in den Warenkorb.
           </p>
