@@ -1,4 +1,4 @@
-export type ExerciseId = 'oberkoerper' | 'bauch' | 'arme';
+export type ExerciseId = 'oberkoerper' | 'bauch' | 'klappmesser' | 'arme';
 
 export interface Exercise {
   id: ExerciseId;
@@ -11,7 +11,7 @@ export interface Exercise {
   step: number;
 }
 
-/** Drei feste Übungen: Oberkörper, Bauch, Arme. */
+/** Vier feste Übungen: Oberkörper, zweimal Bauch, Arme. */
 export const EXERCISES: Exercise[] = [
   {
     id: 'oberkoerper',
@@ -34,6 +34,16 @@ export const EXERCISES: Exercise[] = [
     step: 5,
   },
   {
+    id: 'klappmesser',
+    group: 'Bauch',
+    name: 'Klappmesser',
+    hint: 'Arme und Beine gleichzeitig hoch, Bewegung kommt aus dem Bauch.',
+    sets: 3,
+    unit: 'reps',
+    base: 12,
+    step: 2,
+  },
+  {
     id: 'arme',
     group: 'Arme',
     name: 'Dips an der Stuhlkante',
@@ -50,9 +60,29 @@ export const MAX_WEEK = 12;
 
 export const STORAGE_KEY = 'pfeifn-weihnachts-challenge-v1';
 
+/** Version 1: drei Übungen. Version 2: zusätzlich das Klappmesser. */
+export const STORAGE_VERSION = 2;
+
 export type DayEntry = Partial<Record<ExerciseId, boolean>>;
 
+/**
+ * Übungen der ersten Version. Wer damals einen Tag komplett hatte, soll ihn
+ * nach dem Nachrüsten des Klappmessers nicht wieder als offen sehen. Läuft nur
+ * einmal beim Laden von Daten ohne Versionsnummer.
+ */
+export const LEGACY_EXERCISE_IDS: ExerciseId[] = ['oberkoerper', 'bauch', 'arme'];
+
+export function migrateDays(days: Record<string, DayEntry>): Record<string, DayEntry> {
+  const migrated: Record<string, DayEntry> = {};
+  Object.entries(days).forEach(([key, entry]) => {
+    const wasComplete = LEGACY_EXERCISE_IDS.every((id) => entry?.[id] === true);
+    migrated[key] = wasComplete ? { ...entry, klappmesser: true } : entry;
+  });
+  return migrated;
+}
+
 export interface TrackerState {
+  version: number;
   startDate: string;
   days: Record<string, DayEntry>;
 }

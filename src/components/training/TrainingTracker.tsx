@@ -14,6 +14,7 @@ import {
   DayEntry,
   EXERCISES,
   STORAGE_KEY,
+  STORAGE_VERSION,
   TrackerState,
   addDays,
   buildDayKeys,
@@ -24,6 +25,7 @@ import {
   fromKey,
   isDayComplete,
   lastTrainingDay,
+  migrateDays,
   monthLabel,
   startOfDay,
   targetLabel,
@@ -34,7 +36,7 @@ import {
 const WEEKDAY_HEADS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
 function loadState(todayKey: string): TrackerState {
-  const fallback: TrackerState = { startDate: todayKey, days: {} };
+  const fallback: TrackerState = { version: STORAGE_VERSION, startDate: todayKey, days: {} };
   if (typeof window === 'undefined') return fallback;
 
   try {
@@ -42,12 +44,14 @@ function loadState(todayKey: string): TrackerState {
     if (!raw) return fallback;
     const parsed = JSON.parse(raw) as Partial<TrackerState>;
     if (!parsed || typeof parsed !== 'object') return fallback;
+    const days = parsed.days && typeof parsed.days === 'object' ? (parsed.days as Record<string, DayEntry>) : {};
     return {
+      version: STORAGE_VERSION,
       startDate:
         typeof parsed.startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(parsed.startDate)
           ? parsed.startDate
           : todayKey,
-      days: parsed.days && typeof parsed.days === 'object' ? (parsed.days as Record<string, DayEntry>) : {},
+      days: parsed.version === STORAGE_VERSION ? days : migrateDays(days),
     };
   } catch {
     return fallback;
@@ -108,7 +112,7 @@ export default function TrainingTracker() {
   const reset = useCallback(() => {
     if (!window.confirm('Wirklich alle Einträge löschen und neu starten?')) return;
     const todayKey = toKey(startOfDay(new Date()));
-    setState({ startDate: todayKey, days: {} });
+    setState({ version: STORAGE_VERSION, startDate: todayKey, days: {} });
     setSelected(todayKey);
   }, []);
 
@@ -199,7 +203,7 @@ export default function TrainingTracker() {
           An Weihnachten eine Maschine
         </h1>
         <p className="mt-4 max-w-2xl text-zinc-400">
-          Jeden Tag drei Übungen: Oberkörper, Bauch, Arme. Kein Tag wird ausgelassen.
+          Jeden Tag vier Übungen für Oberkörper, Bauch und Arme. Kein Tag wird ausgelassen.
           Start war der {formatLong(model.start)}, letzter Trainingstag ist der {formatLong(model.end)}.
         </p>
       </header>
