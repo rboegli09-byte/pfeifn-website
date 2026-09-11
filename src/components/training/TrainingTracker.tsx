@@ -32,6 +32,7 @@ import {
   toKey,
   weekIndexFor,
 } from '@/lib/training';
+import ChallengeLogo from '@/components/training/ChallengeLogo';
 
 const WEEKDAY_HEADS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
@@ -195,7 +196,12 @@ export default function TrainingTracker() {
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-12 sm:py-16">
-      <header className="mb-10">
+      <header className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-7">
+        <ChallengeLogo
+          progress={model.total > 0 ? model.done / model.total : 0}
+          className="h-16 w-16 shrink-0 sm:h-24 sm:w-24"
+        />
+        <div>
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">
           Weihnachts-Challenge
         </p>
@@ -206,6 +212,7 @@ export default function TrainingTracker() {
           Jeden Tag vier Übungen für Oberkörper, Bauch und Arme. Kein Tag wird ausgelassen.
           Start war der {formatLong(model.start)}, letzter Trainingstag ist der {formatLong(model.end)}.
         </p>
+        </div>
       </header>
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
