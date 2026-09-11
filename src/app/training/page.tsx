@@ -4,7 +4,7 @@ import TrainingTracker from '@/components/training/TrainingTracker';
 export const metadata: Metadata = {
   title: 'Weihnachts-Challenge – Jeden Tag Krafttraining',
   description:
-    'Täglicher Tracker bis Weihnachten: Oberkörper, Bauch, Arme. Jeden Tag abhaken, an Weihnachten wartet die Belohnung.',
+    'Täglicher Tracker bis Weihnachten: vier Übungen für Oberkörper, Bauch und Arme. Jeden Tag abhaken, an Weihnachten wartet die Belohnung.',
 };
 
 export default function TrainingPage() {
