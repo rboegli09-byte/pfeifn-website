@@ -156,7 +156,7 @@ function groundH(x,z){
   let h = (fbm(x*0.018+10, z*0.018-4, 4)-0.5)*4.5;
   h += Math.sin(x*0.09 + Math.sin(z*0.05)*2.0)*0.45;
   const r = Math.hypot(x,z);
-  h += smooth(52,105,r)*26*(0.75+0.5*fbm(x*0.03,z*0.03,3));
+  h -= smooth(50,110,r)*18*(0.75+0.5*fbm(x*0.03,z*0.03,3));   // the site ends in a drop-off into open blue
   const dr = Math.hypot(x-REEF.x, z-REEF.z); h += (1-smooth(6,26,dr))*2.0;
   const dk = Math.hypot(x-KELP.x, z-KELP.z); h += (1-smooth(8,30,dk))*1.6*(fbm(x*0.08,z*0.08,3)-0.3);
   const ds = Math.hypot(x-SHIP.x, z-SHIP.z); h += (1-smooth(5,17,ds))*0.9;
@@ -405,9 +405,9 @@ function makeRock(sx,sy,sz,sd,detail){
   for (let i=0;i<pa.count;i++){ v.fromBufferAttribute(pa,i).normalize();
     const r = rockR(v, sd); let y = v.y*r*sy; if (y<0) y *= 0.55;   // flat underside, sits in the sand
     pa.setXYZ(i, v.x*r*sx, y, v.z*r*sz); }
-  return smoothNormals(g, 0.18);
+  return smoothNormals(g, 0.2);
 }
-function rockR(dir, sd){ return 1 + (n3(dir.x*1.5+sd, dir.y*1.5, dir.z*1.5)-0.5)*0.8 + (n3(dir.x*3.6, dir.y*3.6+sd, dir.z*3.6)-0.5)*0.3 + (n3(dir.x*9, dir.y*9, dir.z*9+sd)-0.5)*0.07; }
+function rockR(dir, sd){ return 1 + (n3(dir.x*1.5+sd, dir.y*1.5, dir.z*1.5)-0.5)*0.8 + (n3(dir.x*3.6, dir.y*3.6+sd, dir.z*3.6)-0.5)*0.3 + (n3(dir.x*9, dir.y*9, dir.z*9+sd)-0.5)*0.17 + (n3(dir.x*19+sd, dir.y*19, dir.z*19)-0.5)*0.07; }
 function rockSurface(rk, dir){ const d=dir.clone().normalize(); const r=rockR(d, rk.sd); return new V3(d.x*r*rk.sx, d.y*r*rk.sy, d.z*r*rk.sz).applyQuaternion(rk.q).add(rk.p); }
 const gbRock = new GB();
 function addRock(x,z,sx,sy,sz,tag){
@@ -437,7 +437,7 @@ for (let i=0;i<16;i++){ const a=R(0,6.28), r=Math.sqrt(rnd())*20; const s=R(0.8,
 for (let i=0;i<14;i++){ const a=R(0,6.28), r=R(14,48); const s=R(0.4,1.4);
   const x=Math.cos(a)*r, z=Math.sin(a)*r; if (Math.hypot(x-SHIP.x,z-SHIP.z)<14) continue; addRock(x,z,s*R(1,1.6),s*R(0.6,1),s*R(1,1.5),'loose'); }
 for (let i=0;i<26;i++){ const a=i/26*6.28+R(-0.1,0.1), r=R(58,78); const s=R(5,11);
-  addRock(Math.cos(a)*r, Math.sin(a)*r, s*R(1,1.6), s*R(0.8,1.6), s*R(1,1.6), 'wall'); }
+  if (i%3===0 && r<66) addRock(Math.cos(a)*(r-16), Math.sin(a)*(r-16), s*R(0.5,0.8), s*R(0.25,0.45), s*R(0.5,0.8), 'wall'); }
 scene.add(new THREE.Mesh(gbRock.build(), matPlain));
 
 /* ---------------- coral + anemone builders (all into sway GBs) ---------------- */
@@ -756,7 +756,7 @@ let deckHoleWorld = new V3(), shipCenter = new V3();
   pl.rotateX(-Math.PI/2); pl.translate(0,-0.1,0);
   const pp = pl.attributes.position; for (let i=0;i<pp.count;i++){ const x=pp.getX(i), z=pp.getZ(i); pp.setY(i, pp.getY(i) - 0.035*x*x*0.2 + (n3(x*2,z*2,1)-0.5)*0.06); }
   pl.computeVertexNormals();
-  const skullPos = head.clone().addScaledVector(hdir,-0.2); skullPos.y = groundH(skullPos.x, skullPos.z)+0.05;
+  const skullPos = head.clone().addScaledVector(hdir,-0.2); skullPos.y = groundH(skullPos.x, skullPos.z)-0.22;   // half sunk into the sand
   const qs = new THREE.Quaternion().setFromUnitVectors(new V3(1,0,0), new V3(hdir.x,0,hdir.z).normalize()).multiply(new THREE.Quaternion().setFromAxisAngle(new V3(1,0,0), 0.12));
   gb.add(pl, M(skullPos, qs), (x,y,z)=> col(x,y,z).multiplyScalar(0.78+0.4*fbm(x*1.8,z*1.8,3)));
   const dome = new THREE.SphereGeometry(1, 20, 10, 0, Math.PI*2, 0, Math.PI*0.5); dome.scale(1.25,0.6,1.15); dome.computeVertexNormals();
@@ -1179,6 +1179,26 @@ const crabs = (function(){
   scene.add(um);
 })();
 
+/* diver's exhale: a burst of bubbles rises past both sides of the mask every breath cycle */
+const breath = (function(){
+  const cv=document.createElement('canvas'); cv.width=cv.height=64; const ctx=cv.getContext('2d');
+  const gr=ctx.createRadialGradient(26,24,1,32,32,30); gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(0.3,'rgba(210,245,255,0.25)'); gr.addColorStop(0.78,'rgba(220,245,255,0.55)'); gr.addColorStop(1,'rgba(220,245,255,0)');
+  ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(32,32,30,0,7); ctx.fill();
+  const N=70, pos=new Float32Array(N*3), B=[]; for (let i=0;i<N;i++){ B.push({p:new V3(0,-999,0), v:R(0.9,1.8), ph:R(0,6.28), w:R(0.03,0.12)}); pos[i*3+1]=-999; }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  const m=new THREE.PointsMaterial({map:new THREE.CanvasTexture(cv), size:0.045, transparent:true, depthWrite:false, sizeAttenuation:true, color:0xe6f8ff, fog:false});
+  const pts=new THREE.Points(g,m); pts.frustumCulled=false; scene.add(pts);
+  let t=R(1,3), k=0; const rt=new V3(), fw=new V3();
+  return { update(dt){
+    t -= dt; if (t<0){ t = 5.5; if (mode!=='intro'){ rt.set(1,0,0).applyQuaternion(camera.quaternion); fw.set(0,0,-1).applyQuaternion(camera.quaternion);
+        for (let j=0;j<26;j++){ const b=B[k++%N]; const side = j%2?1:-1; b.p.copy(camera.position).addScaledVector(rt, side*R(0.22,0.45)).addScaledVector(fw, R(0.25,0.6)).add(new V3(0,R(-0.45,-0.15),0)); b.v=R(0.9,1.9); b.age=-j*0.035; }
+        Sound.exhale(); } }
+    for (let i=0;i<N;i++){ const b=B[i]; if (b.p.y<-900) continue; b.age=(b.age||0)+dt; if (b.age<0) { pos[i*3+1]=-999; continue; }
+      b.p.y += b.v*dt; b.p.x += Math.sin(b.age*7+b.ph)*b.w*dt*4; b.p.z += Math.cos(b.age*6+b.ph)*b.w*dt*4;
+      if (b.age>3) b.p.y=-999; pos[i*3]=b.p.x; pos[i*3+1]=b.p.y; pos[i*3+2]=b.p.z; }
+    g.attributes.position.needsUpdate=true; } };
+})();
+
 /* ================= CONTROLS ================= */
 const ctl = { yaw:2.6, pitch:-0.08, tYaw:2.6, tPitch:-0.08, vel:new V3(), keys:{}, joy:{x:0,y:0} };
 camera.position.set(-3.5, 5.2, -6.5);
@@ -1307,6 +1327,11 @@ const Sound = (function(){
     start(){ if (!ctx) init(); if (!ctx) return; ctx.resume(); this.set(on); },
     set(v){ on=v; if (!ctx) return; master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setTargetAtTime(on?0.9:0, ctx.currentTime, 0.6); },
     get on(){ return on; },
+    exhale(){ if (!ctx || !on || ctx.state!=='running') return; const now=ctx.currentTime;
+      for (let i=0;i<14;i++) bubble(now+0.05+i*0.05+Math.random()*0.04, 0.9);
+      const n=ctx.createBufferSource(), len=ctx.sampleRate*1.4, b=ctx.createBuffer(1,len,ctx.sampleRate), d=b.getChannelData(0); for (let i=0;i<len;i++) d[i]=Math.random()*2-1;
+      n.buffer=b; const f=ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=520; const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,now); g.gain.exponentialRampToValueAtTime(0.06,now+0.15); g.gain.exponentialRampToValueAtTime(0.0001,now+1.3);
+      n.connect(f); f.connect(g); g.connect(master); n.start(now); n.stop(now+1.4); },
     whaleAt(sec){ if (ctx) { whale(ctx.currentTime+sec); nextWhale = ctx.currentTime+sec+26; } },
     update(dt, nearShip){ if (!ctx || !on || ctx.state!=='running') return; const now=ctx.currentTime;
       bubbleT -= dt; if (bubbleT<0){ const k=Math.random()<0.25+nearShip*0.6 ? 1+Math.floor(Math.random()*(2+nearShip*5)) : 0; for (let i=0;i<k;i++) bubble(now+0.02+i*(0.03+Math.random()*0.07), nearShip); bubbleT = 0.35+Math.random()*1.4*(1-nearShip*0.6); }
@@ -1330,9 +1355,9 @@ $('loading').textContent = 'Ton startet mit dem ersten Klick.';
 const post = (function(){
   const isGL2 = renderer.capabilities.isWebGL2;
   const mk = (w,h)=> new THREE.WebGLRenderTarget(w,h,{minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter, depthBuffer:false});
-  const rtScene = (isGL2 && !MOBILE && THREE.WebGLMultisampleRenderTarget) ? new THREE.WebGLMultisampleRenderTarget(1,1,{minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter}) : new THREE.WebGLRenderTarget(1,1,{minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter});
-  if (rtScene.samples!==undefined) rtScene.samples = 4;
-  const rtA = mk(1,1), rtB = mk(1,1), rtC = mk(1,1);
+  const rtScene = new THREE.WebGLRenderTarget(1,1,{minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter});
+  rtScene.depthTexture = new THREE.DepthTexture(1,1); rtScene.depthTexture.type = THREE.UnsignedIntType;
+  const rtA = mk(1,1), rtB = mk(1,1), rtC = mk(1,1), rtD1 = mk(1,1), rtD2 = mk(1,1);
   const pcam = new THREE.OrthographicCamera(-1,1,1,-1,0,1), pscene = new THREE.Scene();
   const quad = new THREE.Mesh(new THREE.PlaneGeometry(2,2)); quad.frustumCulled=false; pscene.add(quad);
   const VS = 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.0,1.0); }';
@@ -1348,12 +1373,19 @@ const post = (function(){
     void main(){ vec2 d=(vUv-uSun)*(0.92/${NS}.0); vec2 uv=vUv; float decay=1.0; vec3 acc=vec3(0.0);
       for(int i=0;i<${NS};i++){ uv-=d; acc+=max(texture2D(tD,clamp(uv,0.001,0.999)).rgb-vec3(0.5),0.0)*decay; decay*=0.955; }
       gl_FragColor=vec4(acc*(uK/${NS}.0),1.0); }`, {tD:{value:null}, uSun:{value:new THREE.Vector2(0.5,1.0)}, uK:{value:0}});
-  const mComp = sm(`uniform sampler2D tS, tB, tR; uniform float uTime, uAspect; uniform vec2 uRes; varying vec2 vUv;
+  const mComp = sm(`uniform sampler2D tS, tB, tR, tDB, tZ; uniform float uTime, uAspect, uNear, uFar; uniform vec2 uRes; varying vec2 vUv;
+    float lz(vec2 p){ float d=texture2D(tZ,p).x; return uNear*uFar/(uFar - d*(uFar-uNear)); }
     float h(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453); }
     void main(){
       vec2 uv = vUv + vec2(sin(vUv.y*17.0+uTime*1.25)+sin(vUv.y*31.0-uTime*0.9)*0.5, cos(vUv.x*13.0+uTime*1.05)+cos(vUv.x*27.0+uTime*0.7)*0.5)*0.0007;
       vec2 cd = (uv-0.5)*0.004*length(uv-0.5);
       vec3 col = vec3(texture2D(tS,uv+cd).r, texture2D(tS,uv).g, texture2D(tS,uv-cd).b);
+      // camera depth of field: autofocus on whatever is in the centre, background goes soft like a real lens
+      float fz = min(min(lz(vec2(0.5)), lz(vec2(0.46,0.5))), min(lz(vec2(0.54,0.5)), lz(vec2(0.5,0.45))));
+      fz = clamp(fz, 1.5, 22.0);
+      float z = lz(uv);
+      float coc = smoothstep(fz*1.25+1.5, fz*2.6+14.0, z)*0.9 + smoothstep(fz*0.55, fz*0.2, z)*0.8;
+      col = mix(col, texture2D(tDB,uv).rgb, clamp(coc,0.0,0.92));
       col += texture2D(tB,vUv).rgb*0.3;
       col += texture2D(tR,vUv).rgb*vec3(0.78,0.94,1.0);
       // grade: a touch more exposure and saturation, soft S-curve, blue-lifted shadows
@@ -1364,14 +1396,17 @@ const post = (function(){
       col += vec3(0.0,0.006,0.018)*(1.0-col);
       vec2 q = (vUv-0.5)*vec2(uAspect,1.0); col *= mix(1.0, smoothstep(1.05,0.25,length(q)), 0.6);
       col += (h(vUv*uRes+fract(uTime)*91.7)-0.5)*0.03;
-      gl_FragColor = vec4(col,1.0); }`, {tS:{value:null}, tB:{value:null}, tR:{value:null}, uTime:U.uTime, uAspect:{value:1}, uRes:{value:new THREE.Vector2()}});
+      gl_FragColor = vec4(col,1.0); }`, {tS:{value:null}, tB:{value:null}, tR:{value:null}, tDB:{value:null}, tZ:{value:null}, uNear:{value:camera.near}, uFar:{value:camera.far}, uTime:U.uTime, uAspect:{value:1}, uRes:{value:new THREE.Vector2()}});
   const pass = (mat, target)=>{ quad.material = mat; renderer.setRenderTarget(target); renderer.render(pscene, pcam); };
   const sp = new V3(), fw = new V3();
   return {
-    setSize(w,h){ rtScene.setSize(w,h); const qw=Math.max(1,w>>2), qh=Math.max(1,h>>2); rtA.setSize(qw,qh); rtB.setSize(qw,qh); rtC.setSize(qw,qh);
+    setSize(w,h){ rtScene.setSize(w,h); const qw=Math.max(1,w>>2), qh=Math.max(1,h>>2); rtA.setSize(qw,qh); rtB.setSize(qw,qh); rtC.setSize(qw,qh); rtD1.setSize(qw,qh); rtD2.setSize(qw,qh);
       mComp.uniforms.uAspect.value = w/h; mComp.uniforms.uRes.value.set(w,h); this.qw=qw; this.qh=qh; },
     render(){
       renderer.setRenderTarget(rtScene); renderer.render(scene, camera);
+      mBlur.uniforms.tD.value = rtScene.texture; mBlur.uniforms.uDir.value.set(2.2/this.qw,0); pass(mBlur, rtD1);
+      mBlur.uniforms.tD.value = rtD1.texture; mBlur.uniforms.uDir.value.set(0,1.4/this.qh); pass(mBlur, rtD2);
+      mBlur.uniforms.tD.value = rtD2.texture; mBlur.uniforms.uDir.value.set(1.4/this.qw,0); pass(mBlur, rtD1);
       mBright.uniforms.tD.value = rtScene.texture; pass(mBright, rtA);
       for (const r of [1,2]){ mBlur.uniforms.tD.value = rtA.texture; mBlur.uniforms.uDir.value.set(r/this.qw,0); pass(mBlur, rtB);
         mBlur.uniforms.tD.value = rtB.texture; mBlur.uniforms.uDir.value.set(0,r/this.qh); pass(mBlur, rtA); }
@@ -1380,7 +1415,7 @@ const post = (function(){
       sp.copy(camera.position).addScaledVector(sunDir, 100).project(camera);
       mShaft.uniforms.uSun.value.set(sp.x*0.5+0.5, sp.y*0.5+0.5); mShaft.uniforms.uK.value = k*2.2;
       mShaft.uniforms.tD.value = rtA.texture; pass(mShaft, rtC);
-      mComp.uniforms.tS.value = rtScene.texture; mComp.uniforms.tB.value = rtA.texture; mComp.uniforms.tR.value = rtC.texture; pass(mComp, null);
+      mComp.uniforms.tS.value = rtScene.texture; mComp.uniforms.tB.value = rtA.texture; mComp.uniforms.tR.value = rtC.texture; mComp.uniforms.tDB.value = rtD1.texture; mComp.uniforms.tZ.value = rtScene.depthTexture; pass(mComp, null);
     }
   };
 })();
@@ -1394,12 +1429,18 @@ function resize(){ const w=innerWidth, h=innerHeight; renderer.setSize(w,h,false
 addEventListener('resize', resize); resize();
 
 /* ================= LOOP ================= */
+const _hq = new THREE.Quaternion(), _he = new THREE.Euler();
 let T = 0, last = performance.now(), fAcc=0, fN=0, frozen=false;
 const dDepth=$('dDepth'), dHead=$('dHead');
 function frame(now){
   const dt = Math.min(0.05, (now-last)/1000); last = now;
   if (!frozen) step(dt);
+  // handheld: a diver never holds the camera perfectly still
+  const br = Math.sin(T*2*Math.PI/5.5);
+  _hq.setFromEuler(_he.set((Math.sin(T*0.37)*0.6+Math.sin(T*0.83+1.3)*0.4)*0.008 + br*0.004, (Math.sin(T*0.29+2)*0.6+Math.sin(T*0.71)*0.4)*0.009, Math.sin(T*0.23)*0.016+Math.sin(T*0.47+0.7)*0.007, 'YXZ'));
+  const by = br*0.05; camera.quaternion.multiply(_hq); camera.position.y += by;
   post.render();
+  camera.position.y -= by; camera.quaternion.multiply(_hq.invert());
   // adaptive resolution: if the device struggles, render fewer pixels
   fAcc += dt; fN++; if (fN===90){ const avg=fAcc/fN; if (avg>0.03 && PR>0.8){ PR=Math.max(0.75, PR-0.35); renderer.setPixelRatio(PR); resize(); } fAcc=0; fN=0; }
   requestAnimationFrame(frame);
@@ -1410,6 +1451,7 @@ function step(dt){
   else { // intro: slow drift so the backdrop is alive
     _e.set(-0.06+Math.sin(T*0.1)*0.03, 2.55+Math.sin(T*0.07)*0.08, 0); camera.quaternion.setFromEuler(_e); }
   camPos.copy(camera.position);
+  breath.update(dt);
   sky.position.copy(camera.position);
   updateSchools(dt,T); updateReef(dt); updateMantas(dt,T); turtle.update(dt,T); jellies.update(dt,T); shark.update(dt,T); crabs.update(dt); bubbles.update(dt,T);
   for (const l of lods) l.update(camera);
