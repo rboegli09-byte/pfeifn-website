@@ -216,7 +216,7 @@ float caustic(vec2 w){
 }`;
 /* enhance(): adds world-space caustics + optional vertex motion to a built-in material */
 function enhance(mat, o){
-  o = Object.assign({caus:0.6, sway:false, fish:false, flap:false, stripe:false, ripple:null, whale:false, seabed:false, key:''}, o);
+  o = Object.assign({caus:0.6, sway:false, fish:false, flap:false, stripe:false, ripple:null, whale:false, seabed:false, wood:false, key:''}, o);
   const extraU = o.uniforms || {};
   mat.onBeforeCompile = (sh)=>{
     sh.uniforms.uTime = U.uTime;
@@ -266,8 +266,19 @@ function enhance(mat, o){
         #endif
         vWN = normalize(mat3(modelMatrix) * wn_);`);
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform float uTime; varying vec3 vWPos; varying vec3 vWN;\n'+(o.stripe?'varying float vStripe;\n':'')+(o.ripple?'uniform sampler2D uRipN;\n':'')+(o.seabed?'varying float vSand;\nfloat vh_(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }\nfloat vn_(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(vh_(i),vh_(i+vec2(1,0)),f.x), mix(vh_(i+vec2(0,1)),vh_(i+vec2(1,1)),f.x), f.y); }\n':'')+(hasSM?'#define HAS_SM 1\n':'')+CAUSTIC)
-      .replace('#include <color_fragment>', '#include <color_fragment>\n'+(o.stripe?'diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.96,0.95,0.92), vStripe);':'')+(o.seabed?`
+      .replace('#include <common>', '#include <common>\nuniform float uTime; varying vec3 vWPos; varying vec3 vWN;\n'+(o.stripe?'varying float vStripe;\n':'')+(o.ripple?'uniform sampler2D uRipN;\n':'')+(o.seabed?'varying float vSand;\n':'')+((o.seabed||o.wood)?'float vh_(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }\nfloat vn_(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(vh_(i),vh_(i+vec2(1,0)),f.x), mix(vh_(i+vec2(0,1)),vh_(i+vec2(1,1)),f.x), f.y); }\n':'')+(hasSM?'#define HAS_SM 1\n':'')+CAUSTIC)
+      .replace('#include <color_fragment>', '#include <color_fragment>\n'+(o.wood?`
+        { vec2 ax = vec2(${Math.sin(0.55).toFixed(4)}, ${Math.cos(0.55).toFixed(4)}); vec2 pr = vec2(-ax.y, ax.x);
+          float along = dot(vWPos.xz, ax), across = dot(vWPos.xz, pr) + vWPos.y;
+          float grain = vn_(vec2(along*0.7, across*24.0))*0.6 + vn_(vec2(along*3.0, across*70.0))*0.4;
+          diffuseColor.rgb *= 0.74 + 0.46*grain;
+          float up = clamp(vWN.y, 0.0, 1.0);
+          float n1 = vn_(vWPos.xz*2.6 + vWPos.y*1.7), n2 = vn_(vWPos.xz*9.0 - vWPos.y*4.0), n3 = vn_(vec2(along, across)*32.0), n4 = vn_(vWPos.xz*0.8 + 4.0);
+          vec3 algae = mix(vec3(0.2,0.25,0.12), vec3(0.4,0.43,0.22), n2);
+          diffuseColor.rgb = mix(diffuseColor.rgb, algae, smoothstep(0.38,0.72,n1)*(0.2+0.6*up));
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.6,0.35,0.42), smoothstep(0.74,0.86,n2)*0.55);
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.8,0.78,0.72), step(0.9,n3)*0.75);
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.46,0.44,0.36), up*up*smoothstep(0.5,0.85,n4)*0.4); }`:'')+(o.stripe?'diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.96,0.95,0.92), vStripe);':'')+(o.seabed?`
         { vec2 q = vWPos.xz; float n1 = vn_(q*2.3), n2 = vn_(q*8.5+3.1), n3 = vn_(q*0.55+7.0), n4 = vn_(q*21.0);
           vec3 rub = mix(vec3(0.17,0.2,0.16), vec3(0.4,0.4,0.31), n1*0.6+n2*0.32+n4*0.08);
           rub = mix(rub, vec3(0.5,0.27,0.33), smoothstep(0.7,0.86,n2)*0.55);       /* coralline crusts */
@@ -292,7 +303,7 @@ function enhance(mat, o){
           vec3 ab_ = exp(-vec3(0.05, 0.014, 0.013) * dist_);
           outgoingLight = outgoingLight * mix(vec3(1.0), ab_, 0.85) + vec3(0.02, 0.065, 0.1) * (1.0 - ab_.g); }`);
   };
-  mat.customProgramCacheKey = ()=> 'enh|'+JSON.stringify([o.caus,o.sway,o.fish,o.flap,o.stripe,o.tail,!!o.ripple,Object.keys(extraU),o.whale,o.seabed,o.key]);
+  mat.customProgramCacheKey = ()=> 'enh|'+JSON.stringify([o.caus,o.sway,o.fish,o.flap,o.stripe,o.tail,!!o.ripple,Object.keys(extraU),o.whale,o.seabed,o.wood,o.key]);
   return mat;
 }
 
@@ -617,137 +628,214 @@ function nearWhaleRoute(x,z){ let best=1e9; for (let k=0;k<64;k++){ const a=k/64
   mkInst(gb.build(), Math.round(120*Q), [0x8e5bb5,0xd08a4b,0xb8a040], ()=>R(0.7,1.4));
 })();
 
-/* ---------------- shipwreck ---------------- */
-const shipGroup = new THREE.Group();
+/* ---------------- shipwreck: a three-masted merchantman, broken in two ---------------- */
+const shipGroup = new THREE.Group(), bowGroup = new THREE.Group();
 const SHIP_YAW = 0.55;
 const shipLocal = (x,y,z)=> new V3(x,y,z).applyMatrix4(shipGroup.matrixWorld);
-let deckHoleWorld = new V3(), shipCenter = new V3();
+let deckHoleWorld = new V3(), shipCenter = new V3(), hawseWorld = new V3(), bowTipWorld = new V3();
+const matWood = enhance(new THREE.MeshLambertMaterial({vertexColors:true, side:THREE.DoubleSide}), {caus:1.0, wood:true, key:'wood'});
 (function buildShip(){
   seed = 2024;
-  const L = 22;
-  const W = s => 3.0*(s>0 ? Math.pow(Math.max(0,1-Math.pow(s,2.4)),0.55) : (1-0.16*Math.pow(-s,3)));
-  const Hh = s => 4.3 + (s>0 ? 1.1*s*s : 0.7*s*s);
-  const sec = (s,a,side)=> new V3(side*W(s)*Math.pow(Math.sin(a*Math.PI/2),0.6), Hh(s)*a, s*L/2);
-  const wood = new C3(P.wood), dark = new C3(P.woodDark), alg = new C3(0x55603a), rust = new C3(0x6e4a2c);
-  function build(hi){
+  const L = 24, BRK = 0.36, ZB = BRK*L/2;
+  const W  = s => 3.3*(s>0 ? Math.pow(Math.max(0,1-Math.pow(s,2.6)),0.6) : (1-0.2*Math.pow(-s,2.5)));
+  const HM = s => 4.4 + (s>0 ? 1.0*s*s : 0.5*s*s);                 // main sheer line
+  const Hh = s => HM(s) + 1.6*smooth(-0.6,-0.78,s);                 // plus the raised stern castle
+  const sx = (s,a)=>{ const round = Math.sqrt(Math.max(0,1-Math.pow(Math.max(0,1-a),2.4))); return (round + (a-round)*smooth(0.45,1,s)) * (1-0.07*smooth(0.8,1,a)); };
+  const sec = (s,a,side)=> new V3(side*W(s)*sx(s,a), Hh(s)*a, s*L/2 + a*a*2.0*smooth(0.8,1,s) - a*0.6*smooth(-0.9,-1,s));
+  const nrm = (s,a,side)=>{ const ds = sec(Math.min(1,s+0.01),a,side).sub(sec(Math.max(-1,s-0.01),a,side)), da = sec(s,Math.min(1,a+0.01),side).sub(sec(s,Math.max(0,a-0.01),side));
+    const n = new V3().crossVectors(ds,da).normalize(); if (n.x*side<0) n.negate(); if (!isFinite(n.x)) n.set(side,0,0); return n; };
+  const wood = new C3(0x6e5c46), woodD = new C3(0x3a3024), inner = new C3(0x2a221a);
+  const dyM = s=> HM(s)-0.35;                                         // main deck height
+  const dyC = s=> Hh(s)-0.3;                                          // castle deck height
+  // fixed random layout shared by both detail levels
+  const N_MAX = 12, jag = [], hole = [];
+  for (let k=0;k<N_MAX;k++){ jag.push([R(-0.05,0.05), R(-0.05,0.05)]); const m = 1-Math.abs(k-5.5)/5; hole.push([-0.2-0.1*m+R(-0.06,0.04), 0.12+0.08*m+R(-0.04,0.07)]); }
+  const brkAt = (k,N,side)=> BRK + jag[Math.min(N_MAX-1,Math.floor(k/N*N_MAX))][side>0?0:1]*(0.6+0.8*k/N);
+  const PORTS = [-0.5,-0.32,-0.14,0.04,0.22];
+  function plank(gb, s0,s1,a0,a1,side, tint, thick){
+    const A=sec(s0,a0,side), B=sec(s1,a0,side), Cc=sec(s1,a1,side), D=sec(s0,a1,side);
+    const c = wood.clone().multiplyScalar(tint), ci = inner.clone().multiplyScalar(tint);
+    if (side>0) gb.quad(A,D,Cc,B,c); else gb.quad(A,B,Cc,D,c);
+    if (!thick) return;
+    const t = 0.085, n0 = nrm((s0+s1)/2,(a0+a1)/2,side).multiplyScalar(-t);
+    const A2=A.clone().add(n0), B2=B.clone().add(n0), C2=Cc.clone().add(n0), D2=D.clone().add(n0);
+    if (side>0) gb.quad(A2,B2,C2,D2,ci); else gb.quad(A2,D2,C2,B2,ci);
+    gb.quad(D,Cc,C2,D2,c.clone().multiplyScalar(0.8));                 // top edge
+    gb.quad(A,A2,B2,B,c.clone().multiplyScalar(0.6));                  // bottom edge
+    gb.quad(A,D,D2,A2,c.clone().multiplyScalar(0.7)); gb.quad(B,B2,C2,Cc,c.clone().multiplyScalar(0.7)); // end grain
+  }
+  function build(part, lvl){                       // part: 'aft' | 'bow'; lvl: 2 hi desktop, 1 hi mobile, 0 far
     const gb = new GB();
-    const N = hi?11:6, S = hi?30:12;
-    // hull planks
-    const holeK = {}; for (let k=0;k<N;k++){ const mid = Math.abs(k-5)/3; holeK[k] = [-0.12-0.16*(1-mid)+R(-0.1,0.06), 0.2+0.12*(1-mid)+R(-0.06,0.12)]; }
-    const sandC = new C3(0x9d8f70), barn = new C3(0xb8b0a0);
+    const N = [6,9,12][lvl], S = [16,30,46][lvl], thick = lvl>0;
+    const inPart = (s0,s1,k,side)=>{ const b = brkAt(k,N,side); return part==='aft' ? [ -1, b ] : [ b, 1 ]; };
+    // ---- hull planking ----
     for (const side of [-1,1]) for (let k=0;k<N;k++){
-      const a0=k/N, a1=(k+0.9)/N;
-      const plankTint = [];
+      const a0=k/N, a1=(k+0.965)/N; let tint=R(0.8,1.15);
       for (let j=0;j<S;j++){
-        const s0=-1+2*j/S, s1=s0+2/S;
-        if (hi && side>0 && k>=2 && k<=8 && s1>holeK[k][0] && s0<holeK[k][1]) continue;
-        if (hi && side<0 && k>=6 && k<=7 && s0>0.5 && s0<0.62) continue;
-        if (Math.floor(j/4)!==plankTint.length-1) plankTint.push(R(0.72,1.18));
-        const t = plankTint[plankTint.length-1];
-        const mz=(s0+s1)/2*L/2, ma=(a0+a1)/2;
-        const c = wood.clone().multiplyScalar(t).lerp(alg, (1-ma)*0.55*fbm(mz*0.4+side*7, ma*5, 2)).lerp(dark, rnd()*0.25);
-        c.lerp(barn, smooth(0.62,0.8,fbm(mz*1.3+side*3, ma*9+k, 2))*0.3);   // barnacle / encrusting patches
-        const A=sec(s0,a0,side), B=sec(s1,a0,side), Cc=sec(s1,a1,side), D=sec(s0,a1,side);
-        if (side>0) gb.quad(A,B,Cc,D,c); else gb.quad(B,A,D,Cc,c);
+        let s0=-1+2*j/S, s1=s0+2/S; const [lo,hi] = inPart(s0,s1,k,side);
+        if (s1<=lo || s0>=hi) continue; s0=Math.max(s0,lo); s1=Math.min(s1,hi);
+        if (j%5===0) tint=R(0.78,1.15);
+        const hk = Math.floor(k/N*N_MAX);
+        if (side>0 && k>=Math.floor(N*0.17) && k<=Math.floor(N*0.8) && s1>hole[hk][0] && s0<hole[hk][1]) continue;     // the big hole
+        if (lvl>0 && k===Math.round(N*0.75) && PORTS.some(pp=>Math.abs((s0+s1)/2-pp)<0.03)) continue;                   // gun ports
+        if (lvl>0 && k>=N*0.5 && hash2(k*31+(side+1)*7, j)<0.05) continue;                                              // planks sprung loose
+        plank(gb, s0,s1,a0,a1,side, tint, thick);
       }
     }
-    // transom
-    for (let k=0;k<N;k++){ const a0=k/N,a1=(k+0.9)/N;
-      gb.quad(sec(-1,a0,1), sec(-1,a0,-1), sec(-1,a1,-1), sec(-1,a1,1), wood.clone().multiplyScalar(R(0.6,0.9))); }
-    // deck planks with a broken hole
-    const dy = s=> Hh(s)-0.35;
-    for (let xi=-2.95; xi<2.95; xi+=0.3){
-      const holeA = -0.3+R(-0.08,0.05), holeB = 0.14+R(-0.05,0.08);
-      for (let j=0;j<S;j++){
-        const s0=-0.98+1.9*j/S, s1=s0+1.9/S;
-        const w0=W(s0)*0.98, w1=W(s1)*0.98; if (Math.abs(xi)>Math.min(w0,w1)-0.05) continue;
-        if (xi>-1.5 && xi<1.9 && s1>holeA && s0<holeB) continue;
-        if (!hi && rnd()<0.1) continue;
-        const c = wood.clone().multiplyScalar(R(0.75,1.15)).lerp(alg, R(0,0.3)).lerp(sandC, smooth(0.4,0.8,fbm(xi*0.8+3, s0*6, 3))*0.6);   // sand drifted onto the deck
-        const y0=dy(s0), y1=dy(s1);
-        gb.quad(new V3(xi,y0,s0*L/2), new V3(xi+0.27,y0,s0*L/2), new V3(xi+0.27,y1,s1*L/2), new V3(xi,y1,s1*L/2), c);
-      }
+    const sRange = part==='aft' ? [-1, BRK] : [BRK, 1];
+    // ---- keel, stem, sternpost ----
+    let prev=null; for (let j=0;j<=12;j++){ const ss = sRange[0]+(sRange[1]-sRange[0])*j/12; const pt = sec(ss,0,1).add(new V3(0,-0.05,0)); if (prev) beam(gb, prev, pt, 0.2,0.2, woodD, null, 4); prev=pt; }
+    if (part==='bow'){ prev=null; for (let k=0;k<=8;k++){ const pt=sec(1,k/8,1).add(new V3(0,0,0.12)); if (prev) beam(gb, prev, pt, 0.2,0.18, woodD, null, 5); prev=pt; }
+      beam(gb, sec(1,1,1), sec(1,1,1).add(new V3(0,1.9,5.2)), 0.2, 0.11, woodD.clone().multiplyScalar(1.2), null, 6);          // bowsprit
+      beam(gb, sec(1,1,1).add(new V3(0,0.9,2.5)), sec(1,1,1).add(new V3(0,-0.8,1.2)), 0.04,0.04, woodD, null, 3); }
+    else { beam(gb, sec(-1,0,1), sec(-1,1,1).add(new V3(0,0.4,0)), 0.2,0.18, woodD, null, 5);
+      gb.quad(new V3(0.07,0.3,-L/2-0.25), new V3(0.07,3.8,-L/2-0.75), new V3(0.07,3.8,-L/2-1.9), new V3(0.07,0.3,-L/2-1.6), woodD.clone().multiplyScalar(1.3)); }
+    // ---- transom with stern gallery windows ----
+    if (part==='aft'){ const NT=[6,9,12][lvl];
+      for (let k=0;k<NT;k++){ const a0=k/NT, a1=(k+0.9)/NT; const P0=sec(-1,a0,-1), P1=sec(-1,a0,1), P2=sec(-1,a1,1), P3=sec(-1,a1,-1);
+        if (a0<0.72) { gb.quad(P0,P1,P2,P3, wood.clone().multiplyScalar(R(0.7,1))); continue; }
+        for (let c=0;c<9;c++){ const u0=c/9, u1=(c+1)/9; const L0=P0.clone().lerp(P1,u0), L1=P0.clone().lerp(P1,u1), U1=P3.clone().lerp(P2,u1), U0=P3.clone().lerp(P2,u0);
+          if (c%2===1 && a0<0.9){ const off=new V3(0,0,0.25); gb.quad(L0.clone().add(off),L1.clone().add(off),U1.clone().add(off),U0.clone().add(off), new C3(0x0c0f10)); }   // dark window
+          else gb.quad(L0,L1,U1,U0, wood.clone().multiplyScalar(R(0.7,1))); } }
     }
-    if (hi){
-      // planks dangling into the hole
-      for (let i=0;i<5;i++){ const x=R(-1.2,1.6), s=R(-0.28,0.12), y=dy(s);
-        const a=new V3(x,y,s*L/2), b=a.clone().add(new V3(R(-0.4,0.4), -R(1,2.2), R(-0.6,0.6)));
-        const n = new V3(0.27,0,0); gb.quad(a, a.clone().add(n), b.clone().add(n), b, wood.clone().multiplyScalar(R(0.6,0.9))); }
-      // ribs
-      for (let s=-0.9; s<=0.9; s+=0.13) for (const side of [-1,1]){
-        if (rnd()<0.2) continue;                                            // missing frames
-        const top = rnd()<0.35 ? R(0.45,0.85) : 1, ss = s+R(-0.02,0.02), tilt = R(-0.08,0.08);
-        let prev=null; for (let k=0;k<=8;k++){ const a=k/8*top; const pnt = sec(ss,a,side).multiplyScalar(0.9); pnt.z = (ss+tilt*a)*L/2;
-          if (prev) beam(gb, prev, pnt, 0.1, 0.085, dark.clone().multiplyScalar(R(0.7,1.1)), null, 4); prev=pnt; }
-        if (top<1) beam(gb, prev, prev.clone().add(new V3(R(-0.2,0.2),R(0.15,0.3),R(-0.2,0.2))), 0.085, 0.03, dark, null, 4); }   // splintered end
-      // deck beams
-      for (let s=-0.9; s<=0.85; s+=0.2){ const w=W(s)*0.95; beam(gb, new V3(-w,dy(s)-0.15,s*L/2), new V3(w,dy(s)-0.15,s*L/2), 0.11,0.11, dark, null, 4); }
+    // ---- decks ----
+    const deck = (sA,sB,yf,holeFn)=>{ for (let xi=-3.1; xi<3.1; xi+=0.295){ let j0=null; const SJ = Math.max(6, Math.round(S*(sB-sA)/2));
+        for (let j=0;j<SJ;j++){ const s0=sA+(sB-sA)*j/SJ, s1=s0+(sB-sA)/SJ; const y0=yf(s0), y1=yf(s1);
+          const w0=W(s0)*sx(s0,y0/Hh(s0))*0.97, w1=W(s1)*sx(s1,y1/Hh(s1))*0.97; if (Math.abs(xi)>Math.min(w0,w1)-0.06 || Math.abs(xi+0.28)>Math.min(w0,w1)-0.06) continue;
+          if (holeFn && holeFn(xi,s0,s1)) continue;
+          const c = wood.clone().multiplyScalar(R(0.8,1.15)*0.95);
+          gb.quad(new V3(xi,y0,s0*L/2), new V3(xi,y1,s1*L/2), new V3(xi+0.28,y1,s1*L/2), new V3(xi+0.28,y0,s0*L/2), c);
+          if (lvl>0) gb.quad(new V3(xi,y0-0.07,s0*L/2), new V3(xi,y0,s0*L/2), new V3(xi+0.28,y0,s0*L/2), new V3(xi+0.28,y0-0.07,s0*L/2), c.clone().multiplyScalar(0.6)); } } };
+    const dh = {}; const deckHole = (xi,s0,s1)=>{ const key=Math.round(xi*10); if (!dh[key]) dh[key]=[-0.27+R(-0.07,0.05), 0.04+R(-0.05,0.08)]; return xi>-1.7 && xi<2.3 && s1>dh[key][0] && s0<dh[key][1]; };
+    if (part==='aft'){ deck(-0.6, BRK-0.03, dyM, (xi,s0,s1)=> deckHole(xi,s0,s1) || (lvl>0 && hash2(Math.round(xi*10)+50, Math.round(s0*40))<0.04));
+      deck(-0.98, -0.66, dyC, (xi,s0)=> lvl>0 && hash2(Math.round(xi*10), Math.round(s0*50))<0.08);
+      // bulkhead between main deck and castle, with a doorway
+      for (let xi=-2.9; xi<2.9; xi+=0.3){ if (Math.abs(xi-0.1)<0.5) continue; const s0=-0.64, y0=dyM(s0), y1=dyC(s0); const w=W(s0)*0.95; if (Math.abs(xi)>w-0.1) continue;
+        gb.quad(new V3(xi,y0,s0*L/2), new V3(xi+0.28,y0,s0*L/2), new V3(xi+0.28,y1,s0*L/2), new V3(xi,y1,s0*L/2), wood.clone().multiplyScalar(R(0.6,0.9))); } }
+    else deck(BRK+0.05, 0.9, dyM, (xi,s0)=> lvl>0 && hash2(Math.round(xi*10)+9, Math.round(s0*40))<0.06);
+    // ---- frames (ribs): visible through the hole and sticking out of the break ----
+    if (lvl>0){
+      for (let ss=sRange[0]+0.03; ss<sRange[1]-0.01 + (part==='aft'?0.08:0); ss+=0.05){
+        for (const side of [-1,1]){
+          const atBreak = Math.abs(ss-BRK)<0.09; if (!atBreak && rnd()<0.3) continue;
+          const top = atBreak ? R(0.55,1.05) : (rnd()<0.2 ? R(0.5,0.9) : 1);
+          let prev=null; for (let k=0;k<=8;k++){ const a=k/8*top; const pt = sec(Math.min(ss,0.99),a,side).add(nrm(Math.min(ss,0.99),a,side).multiplyScalar(-0.16));
+            if (prev) beam(gb, prev, pt, 0.11, 0.1, woodD.clone().multiplyScalar(R(0.8,1.2)), null, 4); prev=pt; }
+          if (top<1) beam(gb, prev, prev.clone().add(new V3(side*R(0,0.2),R(0.2,0.45),R(-0.15,0.15))), 0.1, 0.02, woodD, null, 4); } }
+      for (let ss=Math.max(-0.6,sRange[0]); ss<Math.min(0.9,sRange[1]); ss+=0.07){ const w=W(ss)*sx(ss,dyM(ss)/Hh(ss))*0.95; beam(gb, new V3(-w,dyM(ss)-0.2,ss*L/2), new V3(w,dyM(ss)-0.2,ss*L/2), 0.12,0.12, woodD, null, 4); }
     }
-    // gunwale rails
-    for (const side of [-1,1]){ let prev=null; for (let j=0;j<=S;j++){ const s=-1+2*j/S; const pnt = sec(s,1,side).add(new V3(0,0.1,0));
-      if (prev && !(hi && side>0 && s>-0.1 && s<0.12)) beam(gb, prev, pnt, 0.12,0.12, dark.clone().multiplyScalar(1.2), null, 4); prev=pnt; } }
-    // stern castle walls
-    for (const side of [-1,1]) for (let j=0;j<6;j++){ const s0=-1+j*0.05, s1=s0+0.05; const w0=W(s0)*side, w1=W(s1)*side, h0=Hh(s0), h1=Hh(s1);
-      if (hi && side<0 && j===3) continue;
-      const A=new V3(w0,h0,s0*L/2), B=new V3(w1,h1,s1*L/2), Cc=new V3(w1,h1+1.5,s1*L/2), D=new V3(w0,h0+1.5,s0*L/2);
-      const c = wood.clone().multiplyScalar(R(0.65,1));
-      if (side>0) gb.quad(A,B,Cc,D,c); else gb.quad(B,A,D,Cc,c); }
-    gb.quad(new V3(W(-1),Hh(-1),-L/2), new V3(-W(-1),Hh(-1),-L/2), new V3(-W(-1),Hh(-1)+1.5,-L/2), new V3(W(-1),Hh(-1)+1.5,-L/2), wood.clone().multiplyScalar(0.7));
-    // main mast (snapped) + fallen yard + bowsprit
-    beam(gb, new V3(0.1,0.6,1.8), new V3(0.5,Hh(0.1)+5.2,1.2), 0.24,0.2, dark.clone().multiplyScalar(1.3), null, hi?8:5);
-    beam(gb, new V3(0.5,Hh(0.1)+5.2,1.2), new V3(0.9,Hh(0.1)+5.9,1.6), 0.2,0.06, dark, null, 5);
-    beam(gb, new V3(-3.4,Hh(0.3)+0.2,4.4), new V3(3.2,Hh(0.3)-0.3,7.6), 0.13,0.11, dark.clone().multiplyScalar(1.2), null, 5);
-    beam(gb, new V3(0,Hh(1)-0.2,L/2-0.6), new V3(0,Hh(1)+1.6,L/2+4.2), 0.17,0.1, dark.clone().multiplyScalar(1.2), null, 6);
-    // rudder
-    gb.quad(new V3(0.08,0.2,-L/2-0.05), new V3(0.08,0.2,-L/2-1.2), new V3(0.08,3.6,-L/2-0.9), new V3(0.08,3.6,-L/2-0.05), rust);
-    return gb.build();
+    // ---- cap rails and stanchions ----
+    for (const side of [-1,1]){ let prev=null; for (let j=0;j<=S;j++){ const ss=sRange[0]+(sRange[1]-sRange[0])*j/S; const pt = sec(ss,1,side).add(new V3(0,0.08,0));
+        const gap = side>0 && ss>-0.12 && ss<0.06; if (prev && !gap) beam(gb, prev, pt, 0.11,0.11, woodD.clone().multiplyScalar(1.25), null, 4); prev = gap ? null : pt;
+        if (lvl>0 && ss<-0.62 && j%2===0) beam(gb, pt, pt.clone().add(new V3(0,0.75,0)), 0.05,0.05, woodD, null, 4); } }
+    if (part==='aft' && lvl>0){ for (const side of [-1,1]){ let prev=null; for (let ss=-1; ss<=-0.62; ss+=0.04){ const pt = sec(ss,1,side).add(new V3(0,0.85,0)); if (prev) beam(gb, prev, pt, 0.06,0.06, woodD, null, 4); prev=pt; } } }
+    // ---- deck fittings ----
+    if (part==='aft'){
+      const hs = -0.45, hy = dyM(hs), hz = hs*L/2;                                                   // cargo hatch coaming
+      beam(gb, new V3(-1,hy+0.2,hz-0.8), new V3(1,hy+0.2,hz-0.8), 0.13,0.13, woodD, null,4); beam(gb, new V3(-1,hy+0.2,hz+0.8), new V3(1,hy+0.2,hz+0.8), 0.13,0.13, woodD, null,4);
+      beam(gb, new V3(-1,hy+0.2,hz-0.8), new V3(-1,hy+0.2,hz+0.8), 0.13,0.13, woodD, null,4); beam(gb, new V3(1,hy+0.2,hz-0.8), new V3(1,hy+0.2,hz+0.8), 0.13,0.13, woodD, null,4);
+      const cs = 0.24, cy = dyM(cs), cz = cs*L/2;                                                    // capstan
+      gb.add(new THREE.CylinderGeometry(0.32,0.42,0.9,12), M(new V3(0.2,cy+0.45,cz)), woodD.clone().multiplyScalar(1.3));
+      gb.add(new THREE.CylinderGeometry(0.5,0.5,0.15,12), M(new V3(0.2,cy+0.95,cz)), woodD.clone().multiplyScalar(1.1));
+      for (let k=0;k<3;k++){ const an=k/3*Math.PI+0.3; beam(gb, new V3(0.2+Math.cos(an)*1.1,cy+0.8,cz+Math.sin(an)*1.1), new V3(0.2-Math.cos(an)*1.1,cy+0.8,cz-Math.sin(an)*1.1), 0.05,0.05, woodD, null, 4); }
+      // mainmast stump with the remains of the main top, mizzen snapped short
+      const mb = new V3(0.05,0.4,0.1*L/2), mt = new V3(0.35,HM(0.1)+6.5,0.1*L/2-0.45);
+      beam(gb, mb, mt, 0.3,0.25, woodD.clone().multiplyScalar(1.35), null, lvl>1?10:6);
+      beam(gb, mt, mt.clone().add(new V3(0.12,0.9,-0.1)), 0.25,0.05, woodD, null, 6);
+      gb.add(new THREE.CylinderGeometry(1.0,0.9,0.18,10,1,false), M(mt.clone().add(new V3(-0.05,-1.0,0.05)), new THREE.Quaternion().setFromEuler(new THREE.Euler(0.1,0,0.35))), woodD.clone().multiplyScalar(1.1));
+      beam(gb, new V3(0,dyC(-0.8)-0.2,-0.8*L/2), new V3(-0.1,dyC(-0.8)+2.4,-0.8*L/2+0.2), 0.2,0.17, woodD.clone().multiplyScalar(1.3), null, 6);
+      if (lvl>0){ // shrouds still hanging from the main top
+        for (const side of [-1,1]) for (let k=0;k<3;k++){ const ss=0.02+k*0.06; const rail = sec(ss,1,side).add(new V3(0,0.1,0)); const top = mt.clone().add(new V3(0,-1.2,0));
+          const mid = rail.clone().lerp(top,0.5).add(new V3(side*0.3,-0.6,0)); const cv = new THREE.QuadraticBezierCurve3(top, mid, rail);
+          if (side>0 && k===1) { cv.v2 = rail.clone().add(new V3(side*1.2,-2.6,0.6)); }      // one parted line hangs free
+          gb.add(new THREE.TubeGeometry(cv, 10, 0.03, 4, false), null, new C3(0x2c2a22)); } }
+    }
+    if (part==='bow'){ const fs=0.62, fb=new V3(0,0.5,fs*L/2); beam(gb, fb, new V3(-0.1,HM(fs)+1.4,fs*L/2+0.1), 0.24,0.22, woodD.clone().multiplyScalar(1.3), null, 8);
+      beam(gb, new V3(-0.1,HM(fs)+1.4,fs*L/2+0.1), new V3(0.05,HM(fs)+1.75,fs*L/2+0.35), 0.22,0.04, woodD, null, 6); }
+    const g = gb.build(); if (part==='bow') g.translate(0,0,-ZB); return g;
   }
-  const lod = new THREE.LOD();
-  lod.addLevel(new THREE.Mesh(build(true), matPlain), 0);
-  lod.addLevel(new THREE.Mesh(build(false), matPlain), MOBILE?34:50);
-  shipGroup.add(lod); lods.push(lod);
+  const hiL = MOBILE ? 1 : 2;
+  for (const [grp, part] of [[shipGroup,'aft'],[bowGroup,'bow']]){
+    const lod = new THREE.LOD(); lod.addLevel(new THREE.Mesh(build(part,hiL), matWood), 0); lod.addLevel(new THREE.Mesh(build(part,0), matWood), MOBILE?34:55);
+    grp.add(lod); lods.push(lod); }
 
-  // coral growing on the wreck (only rendered up close)
-  const cgb = new GB(EXS);
+  // coral and growth on both halves (only rendered up close)
   const coralCols = P.coral.map(h=>new C3(h));
-  for (let i=0;i<(MOBILE?22:42);i++){
-    const s=R(-0.92,0.85), side = rnd()<0.75?1:-1;
-    const onDeck = rnd()<0.35;
-    const p = onDeck ? new V3(R(-2.2,2.2)*W(s)/3, Hh(s)-0.33, s*L/2) : sec(s, R(0.55,1.0), side).add(new V3(0,0.05,0));
-    if (onDeck && Math.abs(p.x)<1.8 && s>-0.32 && s<0.16) continue;
-    const t=rnd(), col=coralCols[Math.floor(rnd()*coralCols.length)].clone(), ph=R(0,6.28);
-    if (t<0.35) coralBranch(cgb, p, new V3(side*0.3,1,0).normalize(), R(0.15,0.3), 0.045, MOBILE?1:2, col, col.clone().lerp(new C3(0xffffff),0.3), ph, 0, p.y);
-    else if (t<0.55) coralBrain(cgb, p, R(0.2,0.4), col.lerp(new C3(0xd9c38a),0.4));
-    else if (t<0.75) tubeSponge(cgb, p, new C3([0x8e5bb5,0xf08a4b,0xc9a227][Math.floor(rnd()*3)]));
-    else if (t<0.88) seaWhip(cgb, p, new C3([0xe8c547,0xc4453d][Math.floor(rnd()*2)]), ph);
-    else anemone(cgb, p, new C3([0xe86aa0,0x7fd1a8][Math.floor(rnd()*2)]), new C3(0xfff0f4), !MOBILE);
+  for (const [grp, part] of [[shipGroup,'aft'],[bowGroup,'bow']]){
+    const cgb = new GB(EXS); const n = Math.round((part==='aft'?52:28)*(MOBILE?0.5:1));
+    for (let i=0;i<n;i++){
+      const s0 = part==='aft' ? R(-0.95,BRK-0.04) : R(BRK+0.04,0.88), side = rnd()<0.7?1:-1, onDeck = rnd()<0.4;
+      let p = onDeck ? new V3(R(-0.8,0.8)*W(s0), (s0<-0.66?dyC(s0):dyM(s0))+0.02, s0*L/2) : sec(s0, R(0.45,1.0), side).add(new V3(0,0.05,0));
+      if (onDeck && Math.abs(p.x)<2 && s0>-0.33 && s0<0.12) continue;
+      if (part==='bow') p.z -= ZB;
+      const t=rnd(), col=coralCols[Math.floor(rnd()*coralCols.length)].clone(), ph=R(0,6.28);
+      if (t<0.28) coralBranch(cgb, p, new V3(side*0.3,1,0).normalize(), R(0.15,0.3), 0.045, MOBILE?1:2, col, col.clone().lerp(new C3(0xffffff),0.3), ph, 0, p.y);
+      else if (t<0.42) coralBrain(cgb, p, R(0.2,0.45), col.lerp(new C3(0xd9c38a),0.4));
+      else if (t<0.58) coralFan(cgb, p, R(0.8,1.5), new C3([0xa9474a,0x8a4f8f,0xc0603a][Math.floor(rnd()*3)]), ph);
+      else if (t<0.72) tubeSponge(cgb, p, new C3([0x8e5bb5,0xd08a4b,0xb8a040][Math.floor(rnd()*3)]));
+      else if (t<0.86) seaWhip(cgb, p, new C3([0xc9b25e,0xa9524a][Math.floor(rnd()*2)]), ph);
+      else anemone(cgb, p, new C3([0xe86aa0,0x7fd1a8][Math.floor(rnd()*2)]), new C3(0xfff0f4), !MOBILE);
+    }
+    const clod = new THREE.LOD(); clod.addLevel(new THREE.Mesh(cgb.build(), matSway), 0); clod.addLevel(new THREE.Object3D(), MOBILE?30:46);
+    grp.add(clod); lods.push(clod);
   }
-  const clod = new THREE.LOD();
-  clod.addLevel(new THREE.Mesh(cgb.build(), matSway), 0); clod.addLevel(new THREE.Object3D(), MOBILE?30:44);
-  shipGroup.add(clod); lods.push(clod);
 
   // light inside the hull, coming through the broken deck
-  const pl = new THREE.PointLight(0xa8ecff, 2.6, 15, 2); pl.position.set(0.3, 2.2, -0.8); shipGroup.add(pl);
+  const pl = new THREE.PointLight(0xa8ecff, 2.6, 15, 2); pl.position.set(0.3, 2.0, -1.2); shipGroup.add(pl);
 
-  shipGroup.position.set(SHIP.x, groundH(SHIP.x, SHIP.z) - 1.7, SHIP.z);
-  shipGroup.rotation.set(-0.05, SHIP_YAW, 0.22, 'YXZ');
+  shipGroup.position.set(SHIP.x, groundH(SHIP.x, SHIP.z) - 1.5, SHIP.z);
+  shipGroup.rotation.set(-0.045, SHIP_YAW, 0.2, 'YXZ');
   scene.add(shipGroup); shipGroup.updateMatrixWorld(true);
-  deckHoleWorld = shipLocal(0.2, Hh(0)-0.35, -0.08*L/2);
-  shipCenter = shipLocal(0, 2.5, 0);
+  // the bow half lies a little ahead, twisted and nose-down in the sand
+  const brkW = shipLocal(0.6, 0, ZB+2.4); brkW.y = groundH(brkW.x, brkW.z) - 1.9;
+  bowGroup.position.copy(brkW); bowGroup.rotation.set(0.16, SHIP_YAW+0.32, -0.3, 'YXZ');
+  scene.add(bowGroup); bowGroup.updateMatrixWorld(true);
+  deckHoleWorld = shipLocal(0.3, dyM(-0.1), -0.1*L/2);
+  shipCenter = shipLocal(0, 2.5, 1.0);
+  hawseWorld = bowGroup.localToWorld(sec(0.9,0.82,1).add(new V3(0,0,-ZB)));
+  bowTipWorld = bowGroup.localToWorld(sec(1,1,1).add(new V3(0,1.9,5.2-ZB)));
 })();
-// cannons + a fallen mast lying in the sand next to the wreck
+// debris field: anchor and chain, fallen foremast with its yard, cannons, barrels, crates, loose planks
 (function wreckDebris(){
   const gb = new GB(); seed = 51;
-  const iron = new C3(0x2b2a28), dark = new C3(P.woodDark);
+  const iron = new C3(0x2f2d2a), rust = new C3(0x6e4a2c), wood = new C3(0x6e5c46), woodD = new C3(0x3a3024);
   const sideDir = new V3(Math.cos(SHIP_YAW),0,-Math.sin(SHIP_YAW)), fwd = new V3(Math.sin(SHIP_YAW),0,Math.cos(SHIP_YAW));
-  for (let i=0;i<3;i++){ const p = new V3(SHIP.x,0,SHIP.z).addScaledVector(sideDir, -5.5-R(0,2)).addScaledVector(fwd, R(-6,6)); p.y = groundH(p.x,p.z)+0.05;
-    const d = new V3(R(-1,1),R(-0.1,0.15),R(-1,1)).normalize();
-    const g = new THREE.CylinderGeometry(0.16,0.24,2.0,10,1,false);
-    gb.add(g, M(p, qDir(d)), (x,y,z)=> iron.clone().lerp(new C3(0x6e4a2c), fbm(x*3,z*3,2)*0.7)); }
-  const a = new V3(SHIP.x,0,SHIP.z).addScaledVector(sideDir, 7).addScaledVector(fwd, 4); a.y = groundH(a.x,a.z)+0.15;
-  const b = a.clone().addScaledVector(fwd, 9).addScaledVector(sideDir, 2.5); b.y = groundH(b.x,b.z)+0.05;
-  beam(gb, a, b, 0.24, 0.2, dark.clone().multiplyScalar(1.3), null, 8);
-  scene.add(new THREE.Mesh(gb.build(), matPlain));
+  const at = (side, f)=>{ const p = new V3(SHIP.x,0,SHIP.z).addScaledVector(sideDir, side).addScaledVector(fwd, f); p.y = groundH(p.x,p.z); return p; };
+  const ironCol = (x,y,z)=> iron.clone().lerp(rust, fbm(x*3,z*3+y,2)*0.8);
+  // anchor ahead of the bow, chain running up to the hawse hole
+  const an = at(5.5, 21); const ad = fwd.clone().applyAxisAngle(UP, 0.8);
+  const aq = new THREE.Quaternion().setFromUnitVectors(UP, new V3(ad.x, 0.18, ad.z).normalize());
+  beam(gb, an.clone().add(new V3(0,0.15,0)), an.clone().add(new V3(ad.x*2.6,0.55,ad.z*2.6)), 0.09,0.08, iron, null, 6);
+  const crown = an.clone().add(new V3(0,0.15,0)), perp = new V3(-ad.z,0,ad.x);
+  for (const sd of [-1,1]){ const cv = new THREE.QuadraticBezierCurve3(crown, crown.clone().addScaledVector(perp, sd*0.9).add(new V3(0,0.05,0)), crown.clone().addScaledVector(perp, sd*1.0).addScaledVector(ad,0.9).add(new V3(0,0.25,0)));
+    gb.add(new THREE.TubeGeometry(cv, 8, 0.08, 5, false), null, ironCol); gb.add(new THREE.ConeGeometry(0.16,0.35,4), M(cv.v2, qDir(ad)), ironCol); }
+  const stockA = an.clone().add(new V3(ad.x*2.4, 0.6, ad.z*2.4)); beam(gb, stockA.clone().addScaledVector(perp,-1.1), stockA.clone().addScaledVector(perp,1.1).add(new V3(0,0.9,0)), 0.09,0.07, woodD, null, 5);
+  const chainEnd = an.clone().add(new V3(ad.x*2.7,0.6,ad.z*2.7));
+  const mid1 = chainEnd.clone().lerp(hawseWorld, 0.45); mid1.y = groundH(mid1.x, mid1.z)+0.08;
+  const chain = new THREE.CatmullRomCurve3([chainEnd, mid1, chainEnd.clone().lerp(hawseWorld,0.75).setY(groundH(mid1.x,mid1.z)+0.5), hawseWorld]);
+  for (let k=0;k<70;k++){ const t=k/70, pt=chain.getPointAt(t), tn=chain.getTangentAt(t); const q=new THREE.Quaternion().setFromUnitVectors(new V3(0,0,1), tn); q.multiply(new THREE.Quaternion().setFromAxisAngle(new V3(0,0,1), k%2?Math.PI/2:0));
+    gb.add(new THREE.TorusGeometry(0.11,0.035,4,8), M(pt, q, new V3(1,1.6,1)), ironCol); }
+  // fallen foremast + yard lying in the sand beside the bow
+  const ma = at(7, 7), mbp = at(9.5, 17); ma.y+=0.2; mbp.y+=0.15; beam(gb, ma, mbp, 0.26,0.2, woodD.clone().multiplyScalar(1.3), null, 8);
+  const ya = at(4, 13), yb = at(12, 15); ya.y+=0.12; yb.y+=0.1; beam(gb, ya, yb, 0.13,0.1, woodD.clone().multiplyScalar(1.2), null, 6);
+  // cannons spilled to port
+  for (let i=0;i<4;i++){ const p = at(-5.5-R(0,2.5), R(-8,6)); p.y+=0.15; const d = new V3(R(-1,1),R(-0.08,0.1),R(-1,1)).normalize();
+    const g = new THREE.CylinderGeometry(0.15,0.24,2.1,10,1,false); gb.add(g, M(p, qDir(d)), ironCol);
+    gb.add(new THREE.TorusGeometry(0.25,0.06,5,10), M(p.clone().addScaledVector(d,1.05), qDir(d).multiply(new THREE.Quaternion().setFromAxisAngle(new V3(1,0,0),Math.PI/2))), ironCol); }
+  // barrels (lathe staves with hoops)
+  const bprof=[]; for (let k=0;k<=8;k++){ const t=k/8; bprof.push(new THREE.Vector2(0.32+0.08*Math.sin(t*Math.PI), t*1.0-0.5)); }
+  const barrel = new THREE.LatheGeometry(bprof, 12);
+  for (let i=0;i<7;i++){ const p = at(R(-7,8), R(-12,14)); if (Math.abs(p.x-SHIP.x)+Math.abs(p.z-SHIP.z)<4) continue; const lying = rnd()<0.7; p.y += lying?0.3:0.35;
+    const q = lying ? new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI/2, R(0,6.28), 0, 'YXZ')) : new THREE.Quaternion().setFromEuler(new THREE.Euler(R(-0.1,0.1),R(0,6),0));
+    gb.add(barrel, M(p,q), (x,y,z)=> wood.clone().multiplyScalar(0.85+0.3*fbm(x*8,z*8,2)));
+    for (const hy of [-0.32,0.32]) gb.add(new THREE.TorusGeometry(0.39,0.025,4,14), M(p.clone().add(new V3(0,0,0).applyQuaternion(q)).add(new V3(0,hy,0).applyQuaternion(q)), q.clone().multiply(new THREE.Quaternion().setFromAxisAngle(new V3(1,0,0),Math.PI/2))), ironCol); }
+  // crates
+  for (let i=0;i<5;i++){ const p = at(R(-8,8), R(-14,12)); const s=R(0.6,1.0); p.y += s*0.35;
+    gb.add(new THREE.BoxGeometry(s*1.2,s*0.8,s*0.9), M(p, new THREE.Quaternion().setFromEuler(new THREE.Euler(R(-0.2,0.2),R(0,6),R(-0.3,0.3)))), (x,y,z)=> wood.clone().multiplyScalar(0.7+0.4*fbm(x*6,y*6+z,2))); }
+  // loose planks
+  for (let i=0;i<18;i++){ const p = at(R(-9,10), R(-14,18)); p.y += 0.06; const l=R(1.5,4);
+    gb.add(new THREE.BoxGeometry(0.3,0.07,l), M(p, new THREE.Quaternion().setFromEuler(new THREE.Euler(R(-0.08,0.08),R(0,6.28),R(-0.1,0.1)))), wood.clone().multiplyScalar(R(0.7,1.1))); }
+  scene.add(new THREE.Mesh(gb.build(), matWood));
 })();
 
 /* ---------------- whale skeleton ---------------- */
@@ -1337,7 +1425,7 @@ function updateFree(dt){
 const TOUR_LEN = 30;
 const shipW = (lx,y,lz)=>{ const v=new V3(lx,0,lz).applyAxisAngle(UP,SHIP_YAW); return new V3(SHIP.x+v.x, y, SHIP.z+v.z); };
 const tourPts = [ new V3(-38,21,-38), new V3(-31,12,-30), new V3(-27,5.5,-23), new V3(-19,5,-13), new V3(-9,7,-3), new V3(0,8,4),
-  shipW(-3,6.5,-20), shipW(9.5,6.5,-12), shipW(12.5,7,-1), shipW(10.5,7,10.5), shipW(0,8.5,20), shipW(-11.5,8,9), shipW(-10,8.5,-4), shipW(0.2,12,-2.5), shipW(0.6,21,-0.6), shipW(1.5,29,1) ];
+  shipW(-3,6.5,-20), shipW(9.5,6.5,-12), shipW(12.5,7,-1), shipW(12,7.5,10), shipW(-2,9.5,24), shipW(-11.5,8,9), shipW(-10,8.5,-4), shipW(0.2,12,-2.5), shipW(0.6,21,-0.6), shipW(1.5,29,1) ];
 tourPts.forEach(p=>{ const gy=groundH(p.x,p.z)+2.2; if (p.y<gy) p.y=gy; });
 const tourCurve = new THREE.CatmullRomCurve3(tourPts, false, 'centripetal', 0.5);
 const tour = { t:0, q:new THREE.Quaternion() };
